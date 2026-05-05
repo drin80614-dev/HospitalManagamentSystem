@@ -20,7 +20,7 @@
         </div>
         <div class="col-md-6">
             <label asp-for="Payment.ServiceId" class="form-label">Service</label>
-            <select asp-for="Payment.ServiceId" class="form-select" data-service-select="#Payment_Amount">
+            <select asp-for="Payment.ServiceId" class="form-select" data-service-select="#Payment_TotalAmount">
                 <option value="">Select service</option>
                 @foreach (var service in Model.Services)
                 {
@@ -28,10 +28,11 @@
                 }
             </select>
         </div>
-        <div class="col-md-3"><label asp-for="Payment.Amount" class="form-label"></label><input asp-for="Payment.Amount" type="number" step="0.01" class="form-control" /></div>
+        <div class="col-md-3"><label asp-for="Payment.TotalAmount" class="form-label">Service total</label><input asp-for="Payment.TotalAmount" type="number" step="0.01" class="form-control" /></div>
+        <div class="col-md-3"><label asp-for="Payment.Amount" class="form-label">Paid now</label><input asp-for="Payment.Amount" type="number" step="0.01" class="form-control" /></div>
         <div class="col-md-3"><label asp-for="Payment.PaymentMethod" class="form-label"></label><select asp-for="Payment.PaymentMethod" class="form-select"><option>Cash</option><option>Card</option><option>Bank Transfer</option></select></div>
         <div class="col-md-3"><label asp-for="Payment.PaymentDate" class="form-label"></label><input asp-for="Payment.PaymentDate" class="form-control" /></div>
-        <div class="col-md-3"><label asp-for="Payment.Status" class="form-label"></label><select asp-for="Payment.Status" class="form-select"><option>Paid</option><option>Pending</option><option>Cancelled</option></select></div>
+        <div class="col-md-3"><label asp-for="Payment.Status" class="form-label"></label><select asp-for="Payment.Status" class="form-select"><option>Paid</option><option>Pending</option><option>Cancelled</option></select><div class="form-text">Partial payments are saved as Pending automatically.</div></div>
         <div class="col-12"><label asp-for="Payment.Notes" class="form-label"></label><textarea asp-for="Payment.Notes" class="form-control" rows="4"></textarea></div>
     </div>
     <div class="mt-4"><button class="btn btn-primary">Register payment</button></div>

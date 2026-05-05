@@ -8,14 +8,16 @@
 
 <div class="table-shell">
     <table class="table align-middle">
-        <thead><tr><th>Patient</th><th>Service</th><th>Amount</th><th>Method</th><th>Date</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+        <thead><tr><th>Patient</th><th>Service</th><th>Total</th><th>Paid</th><th>Remaining</th><th>Method</th><th>Date</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
         <tbody>
         @foreach (var item in Model)
         {
             <tr>
                 <td><strong>@item.PatientName</strong><br /><span class="text-soft">@item.HospitalNumber</span></td>
                 <td>@item.ServiceName</td>
+                <td>@item.TotalAmount.ToString("C")</td>
                 <td>@item.Amount.ToString("C")</td>
+                <td class="@(item.BalanceAmount > 0 ? "text-danger fw-bold" : "text-success fw-semibold")">@item.BalanceAmount.ToString("C")</td>
                 <td>@item.PaymentMethod</td>
                 <td>@item.PaymentDate.ToString("dd MMM yyyy HH:mm")</td>
                 <td><span class="badge-soft status-@item.Status">@item.Status</span></td>

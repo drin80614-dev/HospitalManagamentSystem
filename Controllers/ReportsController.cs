@@ -50,10 +50,10 @@ public class ReportsController : Controller
                 }
                 break;
             default:
-                csv.AppendLine("Date,Method,Status,Amount,Count");
+                csv.AppendLine("Date,Method,Status,Total,Paid,Remaining,Count");
                 foreach (var row in reports.Payments)
                 {
-                    csv.AppendLine($"{row.PaymentDate:yyyy-MM-dd},{row.PaymentMethod},{row.Status},{row.TotalAmount},{row.PaymentCount}");
+                    csv.AppendLine($"{row.PaymentDate:yyyy-MM-dd},{row.PaymentMethod},{row.Status},{row.TotalAmount},{row.PaidAmount},{row.BalanceAmount},{row.PaymentCount}");
                 }
                 break;
         }

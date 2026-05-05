@@ -97,6 +97,28 @@ public class HospitalRepository
             where service_id is not null
             on conflict (appointment_id, service_id) do nothing;
 
+            alter table payments
+            add column if not exists total_amount numeric(12,2) not null default 0,
+            add column if not exists balance_amount numeric(12,2) not null default 0;
+
+            update payments
+            set total_amount = case when total_amount <= 0 then amount else total_amount end,
+                balance_amount = greatest((case when total_amount <= 0 then amount else total_amount end) - amount, 0),
+                status = case
+                    when status = 'Cancelled' then 'Cancelled'
+                    when greatest((case when total_amount <= 0 then amount else total_amount end) - amount, 0) > 0 then 'Pending'
+                    else status
+                end,
+                updated_at = now()
+            where total_amount <= 0 or balance_amount <> greatest(total_amount - amount, 0);
+
+            update invoices i
+            set total_amount = py.total_amount,
+                updated_at = now()
+            from payments py
+            where py.id = i.payment_id
+              and i.total_amount <> py.total_amount;
+
             delete from medication_inventory
             where medication_name in (
                 'Amlodipine 5 mg',
@@ -1362,19 +1384,42 @@ public class HospitalRepository
         connection.Open();
         using var transaction = connection.BeginTransaction();
 
+        var servicePrice = await connection.ExecuteScalarAsync<decimal?>("select price from services where id = @ServiceId;", payment, transaction)
+            ?? throw new InvalidOperationException("Selected service was not found.");
+
+        if (payment.TotalAmount <= 0)
+        {
+            payment.TotalAmount = servicePrice;
+        }
+
+        if (payment.Amount < 0 || payment.TotalAmount < 0)
+        {
+            throw new InvalidOperationException("Payment amounts cannot be negative.");
+        }
+
+        if (payment.Amount > payment.TotalAmount)
+        {
+            throw new InvalidOperationException("Paid amount cannot be higher than the service total.");
+        }
+
+        payment.BalanceAmount = Math.Max(payment.TotalAmount - payment.Amount, 0);
+        payment.Status = payment.Status == "Cancelled"
+            ? "Cancelled"
+            : payment.BalanceAmount > 0 ? "Pending" : "Paid";
+
         var paymentId = await connection.QuerySingleAsync<Guid>("""
-            insert into payments (patient_id, service_id, amount, payment_method, payment_date, status, notes)
-            values (@PatientId, @ServiceId, @Amount, @PaymentMethod, @PaymentDate, @Status, @Notes)
+            insert into payments (patient_id, service_id, amount, total_amount, balance_amount, payment_method, payment_date, status, notes)
+            values (@PatientId, @ServiceId, @Amount, @TotalAmount, @BalanceAmount, @PaymentMethod, @PaymentDate, @Status, @Notes)
             returning id;
             """, payment, transaction);
 
         await connection.ExecuteAsync("""
             insert into invoices (payment_id, total_amount, status)
-            values (@PaymentId, @Amount, 'Issued');
-            """, new { PaymentId = paymentId, payment.Amount }, transaction);
+            values (@PaymentId, @TotalAmount, 'Issued');
+            """, new { PaymentId = paymentId, payment.TotalAmount }, transaction);
 
         transaction.Commit();
-        await AddAuditLogAsync(actorUserId, "payment registered", "payments", paymentId, $"{payment.Amount:N2} {payment.PaymentMethod}");
+        await AddAuditLogAsync(actorUserId, "payment registered", "payments", paymentId, $"Paid {payment.Amount:N2}, remaining {payment.BalanceAmount:N2} ({payment.PaymentMethod})");
         return paymentId;
     }
 
@@ -1410,7 +1455,7 @@ public class HospitalRepository
     {
         const string sql = """
             select i.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number,
-                   s.service_name, py.payment_method
+                   s.service_name, py.payment_method, py.amount as paid_amount, py.balance_amount
             from invoices i
             join payments py on py.id = i.payment_id
             join patients p on p.id = py.patient_id
@@ -1573,7 +1618,10 @@ public class HospitalRepository
 
         var payments = await connection.QueryAsync<PaymentReportRow>("""
             select payment_date::date as payment_date, payment_method, status,
-                   coalesce(sum(amount),0) as total_amount, count(*)::int as payment_count
+                   coalesce(sum(total_amount),0) as total_amount,
+                   coalesce(sum(amount),0) as paid_amount,
+                   coalesce(sum(balance_amount),0) as balance_amount,
+                   count(*)::int as payment_count
             from payments
             where payment_date::date between @From and @To
             group by payment_date::date, payment_method, status

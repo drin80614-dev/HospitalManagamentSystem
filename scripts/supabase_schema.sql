@@ -303,6 +303,8 @@ create table if not exists payments (
     patient_id uuid not null references patients(id) on delete cascade,
     service_id uuid not null references services(id) on delete restrict,
     amount numeric(12,2) not null check (amount >= 0),
+    total_amount numeric(12,2) not null default 0 check (total_amount >= 0),
+    balance_amount numeric(12,2) not null default 0 check (balance_amount >= 0),
     payment_method varchar(40) not null check (payment_method in ('Cash', 'Card', 'Bank Transfer')),
     payment_date timestamptz not null default now(),
     status varchar(30) not null default 'Paid' check (status in ('Paid', 'Pending', 'Cancelled')),
@@ -310,6 +312,21 @@ create table if not exists payments (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
+alter table payments
+add column if not exists total_amount numeric(12,2) not null default 0,
+add column if not exists balance_amount numeric(12,2) not null default 0;
+
+update payments
+set total_amount = case when total_amount <= 0 then amount else total_amount end,
+    balance_amount = greatest((case when total_amount <= 0 then amount else total_amount end) - amount, 0),
+    status = case
+        when status = 'Cancelled' then 'Cancelled'
+        when greatest((case when total_amount <= 0 then amount else total_amount end) - amount, 0) > 0 then 'Pending'
+        else status
+    end,
+    updated_at = now()
+where total_amount <= 0 or balance_amount <> greatest(total_amount - amount, 0);
 
 create table if not exists invoices (
     id uuid primary key default gen_random_uuid(),
@@ -321,6 +338,13 @@ create table if not exists invoices (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
+update invoices i
+set total_amount = py.total_amount,
+    updated_at = now()
+from payments py
+where py.id = i.payment_id
+  and i.total_amount <> py.total_amount;
 
 create table if not exists audit_logs (
     id uuid primary key default gen_random_uuid(),
@@ -533,14 +557,14 @@ insert into lab_tests (id, patient_id, doctor_id, test_name, test_type, requeste
 ('aa000000-0000-0000-0000-000000000003','70000000-0000-0000-0000-000000000003','40000000-0000-0000-0000-000000000003','Chest X-Ray','Imaging',current_date - interval '1 day','Completed','No acute infiltrate',current_date)
 on conflict (id) do nothing;
 
-insert into payments (id, patient_id, service_id, amount, payment_method, payment_date, status, notes) values
-('c0000000-0000-0000-0000-000000000001','70000000-0000-0000-0000-000000000001','90000000-0000-0000-0000-000000000002',45,'Card',now(),'Paid','Card authorization accepted'),
-('c0000000-0000-0000-0000-000000000002','70000000-0000-0000-0000-000000000002','90000000-0000-0000-0000-000000000001',25,'Cash',now(),'Paid',''),
-('c0000000-0000-0000-0000-000000000003','70000000-0000-0000-0000-000000000003','90000000-0000-0000-0000-000000000004',30,'Bank Transfer',now() - interval '1 day','Pending','Awaiting transfer confirmation')
+insert into payments (id, patient_id, service_id, amount, total_amount, balance_amount, payment_method, payment_date, status, notes) values
+('c0000000-0000-0000-0000-000000000001','70000000-0000-0000-0000-000000000001','90000000-0000-0000-0000-000000000002',45,45,0,'Card',now(),'Paid','Card authorization accepted'),
+('c0000000-0000-0000-0000-000000000002','70000000-0000-0000-0000-000000000002','90000000-0000-0000-0000-000000000001',25,25,0,'Cash',now(),'Paid',''),
+('c0000000-0000-0000-0000-000000000003','70000000-0000-0000-0000-000000000003','90000000-0000-0000-0000-000000000004',30,80,50,'Bank Transfer',now() - interval '1 day','Pending','Awaiting transfer confirmation')
 on conflict (id) do nothing;
 
 insert into invoices (payment_id, total_amount, status)
-select id, amount, 'Issued' from payments
+select id, total_amount, 'Issued' from payments
 where id in ('c0000000-0000-0000-0000-000000000001','c0000000-0000-0000-0000-000000000002','c0000000-0000-0000-0000-000000000003')
 on conflict (payment_id) do nothing;
 

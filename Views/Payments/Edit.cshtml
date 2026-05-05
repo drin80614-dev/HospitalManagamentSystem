@@ -28,9 +28,9 @@
         </div>
         <div class="col-md-6">
             <div class="mini-stat">
-                <span>Amount</span>
-                <strong>@Model.Amount.ToString("C")</strong>
-                <small>@Model.PaymentMethod</small>
+                <span>Financial balance</span>
+                <strong>@Model.Amount.ToString("C") paid</strong>
+                <small>Total @Model.TotalAmount.ToString("C") / remaining @Model.BalanceAmount.ToString("C")</small>
             </div>
         </div>
         <div class="col-md-6">

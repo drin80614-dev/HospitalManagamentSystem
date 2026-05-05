@@ -50,6 +50,8 @@ public class PaymentReportRow
     public string PaymentMethod { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
+    public decimal PaidAmount { get; set; }
+    public decimal BalanceAmount { get; set; }
     public int PaymentCount { get; set; }
 }
 

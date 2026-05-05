@@ -38,8 +38,18 @@ public class PaymentsController : AppController
             return View(model);
         }
 
-        var paymentId = await _repository.CreatePaymentAsync(model.Payment, CurrentUserId);
-        return FlashAndRedirect("Payment registered and invoice generated.", "Receipt", "Payments", new { paymentId });
+        try
+        {
+            var paymentId = await _repository.CreatePaymentAsync(model.Payment, CurrentUserId);
+            return FlashAndRedirect("Payment registered and invoice generated.", "Receipt", "Payments", new { paymentId });
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            model.Patients = await _repository.GetPatientOptionsAsync();
+            model.Services = await _repository.GetServicesAsync();
+            return View(model);
+        }
     }
 
     public async Task<IActionResult> Edit(Guid id)
@@ -57,6 +67,8 @@ public class PaymentsController : AppController
             HospitalNumber = payment.HospitalNumber ?? string.Empty,
             ServiceName = payment.ServiceName ?? string.Empty,
             Amount = payment.Amount,
+            TotalAmount = payment.TotalAmount,
+            BalanceAmount = payment.BalanceAmount,
             PaymentMethod = payment.PaymentMethod,
             PaymentDate = payment.PaymentDate,
             Status = payment.Status,
@@ -84,6 +96,8 @@ public class PaymentsController : AppController
             model.HospitalNumber = payment.HospitalNumber ?? string.Empty;
             model.ServiceName = payment.ServiceName ?? string.Empty;
             model.Amount = payment.Amount;
+            model.TotalAmount = payment.TotalAmount;
+            model.BalanceAmount = payment.BalanceAmount;
             model.PaymentMethod = payment.PaymentMethod;
             model.PaymentDate = payment.PaymentDate;
             return View(model);

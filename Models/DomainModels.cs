@@ -480,8 +480,17 @@ public class Payment : EntityBase
     [Required]
     public Guid ServiceId { get; set; }
 
+    [Display(Name = "Paid amount")]
     [Range(0, 1000000)]
     public decimal Amount { get; set; }
+
+    [Display(Name = "Service total")]
+    [Range(0, 1000000)]
+    public decimal TotalAmount { get; set; }
+
+    [Display(Name = "Remaining balance")]
+    [Range(0, 1000000)]
+    public decimal BalanceAmount { get; set; }
 
     [Required, StringLength(40)]
     public string PaymentMethod { get; set; } = "Cash";
@@ -507,6 +516,8 @@ public class Invoice : EntityBase
 
     public DateTime InvoiceDate { get; set; } = DateTime.Now;
     public decimal TotalAmount { get; set; }
+    public decimal PaidAmount { get; set; }
+    public decimal BalanceAmount { get; set; }
 
     [StringLength(30)]
     public string Status { get; set; } = "Issued";
