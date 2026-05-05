@@ -210,6 +210,54 @@
     });
   });
 
+  document.querySelectorAll("form").forEach((form) => {
+    form.addEventListener("input", () => {
+      form.dataset.dirty = "true";
+    });
+    form.addEventListener("change", () => {
+      form.dataset.dirty = "true";
+    });
+    form.addEventListener("submit", () => {
+      form.dataset.dirty = "false";
+    });
+  });
+
+  const liveRefreshPaths = [
+    /^\/$/i,
+    /^\/Dashboard/i,
+    /^\/Appointments\/?$/i,
+    /^\/Appointments\/Calendar/i,
+    /^\/Patients\/?$/i,
+    /^\/Payments\/?$/i,
+    /^\/Inventory\/?$/i,
+    /^\/LabTests\/?$/i,
+    /^\/Notifications\/?$/i,
+    /^\/Doctor\/MyPatients/i,
+    /^\/Doctor\/MyAppointments/i,
+    /^\/Receptionist\/Patients/i
+  ];
+  const editPaths = /\/(Create|Edit|Login|Receipt|Print|Profile|Settings|ForgotPassword|ResetPassword|AccessDenied)/i;
+  const isLiveRefreshPage = liveRefreshPaths.some((pattern) => pattern.test(window.location.pathname)) &&
+    !editPaths.test(window.location.pathname);
+  const liveRefreshButton = document.getElementById("liveRefreshButton");
+
+  const canRefreshNow = () => {
+    const active = document.activeElement;
+    const isTyping = active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName);
+    const hasDirtyForm = Boolean(document.querySelector("form[data-dirty='true']"));
+    return !document.hidden && !isTyping && !hasDirtyForm && !document.body.classList.contains("modal-open");
+  };
+
+  if (isLiveRefreshPage && liveRefreshButton) {
+    liveRefreshButton.classList.remove("d-none");
+    liveRefreshButton.addEventListener("click", () => window.location.reload());
+    setInterval(() => {
+      if (canRefreshNow()) {
+        window.location.reload();
+      }
+    }, 15000);
+  }
+
   document.querySelectorAll("a, button[type='submit']").forEach((el) => {
     el.addEventListener("click", () => {
       if (!el.closest(".no-loading")) {

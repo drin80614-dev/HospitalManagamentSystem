@@ -61,6 +61,27 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? string.Empty;
+    var isStaticAsset =
+        path.StartsWith("/css/", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/js/", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/lib/", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/img/", StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(".ico", StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(".map", StringComparison.OrdinalIgnoreCase);
+
+    if (!isStaticAsset)
+    {
+        context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate, max-age=0";
+        context.Response.Headers.Pragma = "no-cache";
+        context.Response.Headers.Expires = "0";
+    }
+
+    await next();
+});
+
 app.UseRouting();
 
 app.UseAuthentication();
