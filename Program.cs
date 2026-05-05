@@ -5,6 +5,12 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var renderPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(renderPort))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{renderPort}");
+}
+
 DefaultTypeMap.MatchNamesWithUnderscores = true;
 SqlMapper.AddTypeHandler(new DapperDateTimeHandler());
 SqlMapper.AddTypeHandler(new DapperTimeSpanHandler());
