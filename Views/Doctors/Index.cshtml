@@ -1,0 +1,36 @@
+@model IReadOnlyList<Doctor>
+@{
+    ViewData["Title"] = "Doctors";
+}
+
+<div class="page-heading">
+    <div>
+        <div class="page-kicker">Clinical staff</div>
+        <h1>Doctors</h1>
+    </div>
+    <a class="btn btn-primary" asp-action="Create"><i class="bi bi-heart-pulse me-2"></i>Create doctor</a>
+</div>
+
+<div class="table-shell">
+    <table class="table align-middle">
+        <thead><tr><th>Doctor</th><th>Department</th><th>Contact</th><th>Schedule</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+        <tbody>
+        @foreach (var doctor in Model)
+        {
+            <tr>
+                <td><strong>@doctor.FullName</strong><br /><span class="text-soft">@doctor.Specialization - @doctor.LicenseNumber</span></td>
+                <td>@doctor.DepartmentName</td>
+                <td>@doctor.Phone<br /><span class="text-soft">@doctor.Email</span></td>
+                <td>@doctor.WorkingSchedule</td>
+                <td><span class="badge-soft status-@doctor.Status">@doctor.Status</span></td>
+                <td class="text-end">
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@doctor.Id"><i class="bi bi-pencil"></i></a>
+                    <form class="d-inline js-confirm-delete" method="post" asp-action="Delete" asp-route-id="@doctor.Id">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

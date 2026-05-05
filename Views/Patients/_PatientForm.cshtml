@@ -1,0 +1,98 @@
+@model Patient
+@{
+    var doctors = ViewBag.Doctors as IEnumerable<Doctor> ?? Enumerable.Empty<Doctor>();
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<input type="hidden" asp-for="Id" />
+<div class="row g-3">
+    <div class="col-md-6">
+        <label asp-for="FirstName" class="form-label"></label>
+        <input asp-for="FirstName" class="form-control" />
+        <span asp-validation-for="FirstName" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="LastName" class="form-label"></label>
+        <input asp-for="LastName" class="form-control" />
+        <span asp-validation-for="LastName" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="DateOfBirth" class="form-label"></label>
+        <input asp-for="DateOfBirth" type="date" class="form-control" />
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Gender" class="form-label"></label>
+        <select asp-for="Gender" class="form-select">
+            <option value="">Select</option>
+            <option>Female</option>
+            <option>Male</option>
+            <option>Other</option>
+        </select>
+        <span asp-validation-for="Gender" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="PersonalNumber" class="form-label"></label>
+        <input asp-for="PersonalNumber" class="form-control" />
+        <span asp-validation-for="PersonalNumber" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Phone" class="form-label"></label>
+        <input asp-for="Phone" class="form-control" />
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" />
+    </div>
+    <div class="col-md-4">
+        <label asp-for="BloodType" class="form-label"></label>
+        <select asp-for="BloodType" class="form-select">
+            <option value="">Unknown</option>
+            @foreach (var blood in new[] { "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-" })
+            {
+                <option>@blood</option>
+            }
+        </select>
+    </div>
+    <div class="col-12">
+        <label asp-for="Address" class="form-label"></label>
+        <input asp-for="Address" class="form-control" />
+    </div>
+    <div class="col-md-6">
+        <label asp-for="EmergencyContactName" class="form-label"></label>
+        <input asp-for="EmergencyContactName" class="form-control" />
+    </div>
+    <div class="col-md-6">
+        <label asp-for="EmergencyContactPhone" class="form-label"></label>
+        <input asp-for="EmergencyContactPhone" class="form-control" />
+    </div>
+    <div class="col-md-6">
+        <label asp-for="AssignedDoctorId" class="form-label">Assigned doctor</label>
+        <select asp-for="AssignedDoctorId" class="form-select">
+            <option value="">Unassigned</option>
+            @foreach (var doctor in doctors)
+            {
+                <option value="@doctor.Id">@doctor.FullName - @doctor.Specialization</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="RegistrationDate" class="form-label"></label>
+        <input asp-for="RegistrationDate" type="date" class="form-control" />
+    </div>
+    <div class="col-md-3">
+        <label asp-for="Status" class="form-label"></label>
+        <select asp-for="Status" class="form-select">
+            <option>Active</option>
+            <option>Admitted</option>
+            <option>Discharged</option>
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Allergies" class="form-label"></label>
+        <textarea asp-for="Allergies" class="form-control" rows="3"></textarea>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="ChronicDiseases" class="form-label">Dental notes</label>
+        <textarea asp-for="ChronicDiseases" class="form-control" rows="3"></textarea>
+    </div>
+</div>

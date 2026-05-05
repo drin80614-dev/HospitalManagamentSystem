@@ -1,0 +1,11 @@
+@model Receptionist
+<input type="hidden" asp-for="Id" />
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<div class="row g-3">
+    <div class="col-md-6"><label asp-for="FirstName" class="form-label"></label><input asp-for="FirstName" class="form-control" /></div>
+    <div class="col-md-6"><label asp-for="LastName" class="form-label"></label><input asp-for="LastName" class="form-control" /></div>
+    <div class="col-md-4"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" /></div>
+    <div class="col-md-4"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" /></div>
+    <div class="col-md-4"><label asp-for="Shift" class="form-label"></label><input asp-for="Shift" class="form-control" /></div>
+    <div class="col-md-4"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-select"><option>Active</option><option>Inactive</option></select></div>
+</div>

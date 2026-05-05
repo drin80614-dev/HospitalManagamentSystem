@@ -1,0 +1,192 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = $"{Model.Role} Dashboard";
+    var metricColors = new Dictionary<string, string>
+    {
+        ["primary"] = "var(--hms-blue)",
+        ["success"] = "var(--hms-green)",
+        ["info"] = "var(--hms-teal)",
+        ["warning"] = "#f59e0b",
+        ["danger"] = "var(--hms-coral)"
+    };
+}
+
+<div class="page-heading">
+    <div>
+        <div class="page-kicker">@Model.Role command center</div>
+        <h1>Good shift, @Model.UserName</h1>
+        <p class="text-soft mb-0">Live dental clinic status, appointments, payments, and front-desk flow.</p>
+    </div>
+    <div class="quick-actions">
+        @if (User.IsInRole(AppRoles.Admin))
+        {
+            <a class="btn btn-primary" asp-controller="Doctors" asp-action="Create"><i class="bi bi-heart-pulse me-2"></i>Doctor</a>
+            <a class="btn btn-outline-primary" asp-controller="Reports" asp-action="Index"><i class="bi bi-bar-chart-line me-2"></i>Reports</a>
+        }
+        @if (User.IsInRole(AppRoles.Doctor))
+        {
+            <a class="btn btn-primary" asp-controller="Visits" asp-action="Create"><i class="bi bi-journal-medical me-2"></i>Visit</a>
+            <a class="btn btn-success" asp-controller="Prescriptions" asp-action="Create"><i class="bi bi-capsule me-2"></i>Prescription</a>
+        }
+        @if (User.IsInRole(AppRoles.Receptionist))
+        {
+            <a class="btn btn-primary" asp-controller="Patients" asp-action="Create"><i class="bi bi-person-plus me-2"></i>Patient</a>
+            <a class="btn btn-success" asp-controller="Appointments" asp-action="Create"><i class="bi bi-calendar-plus me-2"></i>Appointment</a>
+            <a class="btn btn-outline-primary" asp-controller="Payments" asp-action="Create"><i class="bi bi-receipt me-2"></i>Payment</a>
+        }
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    @foreach (var metric in Model.Metrics)
+    {
+        var color = metricColors.GetValueOrDefault(metric.Accent, "var(--hms-blue)");
+        <div class="col-sm-6 col-xl-3">
+            <div class="metric-card" style="--accent-color: @color">
+                <div class="icon"><i class="bi @metric.Icon"></i></div>
+                <div class="metric-value">@metric.Value</div>
+                <div class="metric-label">@metric.Label</div>
+                <div class="text-soft mt-2">@metric.Caption</div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-7">
+        <div class="table-shell">
+            <div class="p-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="fw-bold mb-0">Today appointments</h5>
+                    <div class="text-soft">Calendar-ready view of the day</div>
+                </div>
+                <a class="btn btn-sm btn-outline-primary" asp-controller="Appointments" asp-action="Index">Open</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th>Time</th><th>Patient</th><th>Doctor</th><th>Status</th></tr></thead>
+                    <tbody>
+                    @foreach (var item in Model.TodayAppointments)
+                    {
+                        <tr>
+                            <td class="fw-bold">@item.AppointmentTime.ToString(@"hh\:mm")</td>
+                            <td>@item.PatientName<br /><span class="text-soft">@item.Reason</span></td>
+                            <td>@item.DoctorName<br /><span class="text-soft">@item.DoctorSpecialization</span></td>
+                            <td><span class="badge-soft status-@item.Status.Replace(" ", "")">@item.Status</span></td>
+                        </tr>
+                    }
+                    @if (!Model.TodayAppointments.Any())
+                    {
+                        <tr><td colspan="4" class="text-center text-soft py-4">No appointments for today.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <div class="glass-panel p-3 h-100">
+            <h5 class="fw-bold mb-1">Operational pulse</h5>
+            <p class="text-soft">Patients, appointments, payments, and completed visits.</p>
+            <canvas id="pulseChart" height="190"></canvas>
+        </div>
+    </div>
+</div>
+
+@if (User.IsInRole(AppRoles.Receptionist) || User.IsInRole(AppRoles.Admin))
+{
+    <div class="row g-4 mt-1">
+        <div class="col-xl-4">
+            <div class="glass-panel p-3 h-100">
+                <h5 class="fw-bold">Available dentist</h5>
+                <ul class="timeline-list mt-3">
+                    @foreach (var doctor in Model.AvailableDoctors.Take(5))
+                    {
+                        <li class="timeline-item"><i class="bi bi-heart-pulse text-primary"></i><div><strong>@doctor.FullName</strong><div class="text-soft">@doctor.Specialization</div></div></li>
+                    }
+                </ul>
+            </div>
+        </div>
+        <div class="col-xl-8">
+            <div class="glass-panel p-3 h-100">
+                <h5 class="fw-bold">Pending payments</h5>
+                <ul class="timeline-list mt-3">
+                    @foreach (var payment in Model.PendingPayments.Take(5))
+                    {
+                        <li class="timeline-item"><i class="bi bi-credit-card text-danger"></i><div><strong>@payment.PatientName</strong><div class="text-soft">@payment.ServiceName - @payment.Amount.ToString("C")</div></div></li>
+                    }
+                    @if (!Model.PendingPayments.Any())
+                    {
+                        <li class="text-soft">No pending payments.</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row g-4 mt-1">
+    <div class="col-lg-6">
+        <div class="table-shell">
+            <div class="p-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">Recent patients</h5>
+                <a class="btn btn-sm btn-outline-primary" asp-controller="Patients" asp-action="Index">View all</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead><tr><th>Patient</th><th>Doctor</th><th>Status</th></tr></thead>
+                    <tbody>
+                    @foreach (var patient in Model.RecentPatients)
+                    {
+                        <tr>
+                            <td><a asp-controller="Patients" asp-action="Details" asp-route-id="@patient.Id" class="fw-bold">@patient.FullName</a><br /><span class="text-soft">@patient.HospitalNumber</span></td>
+                            <td>@(patient.AssignedDoctorName ?? "Unassigned")</td>
+                            <td><span class="badge-soft status-@patient.Status">@patient.Status</span></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="glass-panel p-3 h-100">
+            <h5 class="fw-bold mb-3">Recent activity</h5>
+            <ul class="timeline-list">
+                @foreach (var activity in Model.RecentActivity)
+                {
+                    <li class="timeline-item">
+                        <i class="bi bi-activity text-primary"></i>
+                        <div>
+                            <div class="fw-bold">@activity.Action</div>
+                            <div class="text-soft">@activity.Details</div>
+                            <small class="text-soft">@activity.UserName - @activity.CreatedAt.ToLocalTime().ToString("MMM dd, HH:mm")</small>
+                        </div>
+                    </li>
+                }
+                @if (!Model.RecentActivity.Any())
+                {
+                    <li class="text-soft">No audit activity yet.</li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const metrics = @Json.Serialize(Model.Metrics.Select(m => new { m.Label, m.Value }));
+        new Chart(document.getElementById("pulseChart"), {
+            type: "doughnut",
+            data: {
+                labels: metrics.slice(0, 6).map(m => m.label),
+                datasets: [{
+                    data: metrics.slice(0, 6).map(m => Number(String(m.value).replaceAll(",", ""))),
+                    backgroundColor: ["#1d72f3", "#21a67a", "#11a7a3", "#f59e0b", "#f9735b", "#7c5cff"],
+                    borderWidth: 0
+                }]
+            },
+            options: { plugins: { legend: { position: "bottom" } }, cutout: "68%" }
+        });
+    </script>
+}

@@ -1,0 +1,25 @@
+@model IReadOnlyList<Role>
+@{
+    ViewData["Title"] = "Roles";
+}
+
+<div class="page-heading">
+    <div>
+        <div class="page-kicker">Access model</div>
+        <h1>Roles</h1>
+        <p class="text-soft mb-0">The system ships with Admin, Doctor, and Receptionist permissions.</p>
+    </div>
+</div>
+
+<div class="row g-3">
+@foreach (var role in Model)
+{
+    <div class="col-md-4">
+        <div class="glass-panel p-4 h-100">
+            <div class="brand-mark mb-3"><i class="bi bi-shield-check"></i></div>
+            <h4 class="fw-bold">@role.Name</h4>
+            <p class="text-soft">@role.Description</p>
+        </div>
+    </div>
+}
+</div>

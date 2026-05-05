@@ -1,0 +1,39 @@
+@model PaymentCreateViewModel
+@{ ViewData["Title"] = "Register Payment"; }
+
+<div class="page-heading">
+    <div><div class="page-kicker">Reception billing</div><h1>Register payment</h1><p class="text-soft mb-0">Creating a payment automatically generates an invoice number.</p></div>
+</div>
+
+<form method="post" class="form-shell">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="Payment.PatientId" class="form-label">Patient</label>
+            <select asp-for="Payment.PatientId" class="form-select">
+                <option value="">Select patient</option>
+                @foreach (var patient in Model.Patients)
+                {
+                    <option value="@patient.Id">@patient.FullName - @patient.HospitalNumber</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Payment.ServiceId" class="form-label">Service</label>
+            <select asp-for="Payment.ServiceId" class="form-select" data-service-select="#Payment_Amount">
+                <option value="">Select service</option>
+                @foreach (var service in Model.Services)
+                {
+                    <option value="@service.Id" data-price="@service.Price">@service.ServiceName - @service.Price.ToString("C")</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3"><label asp-for="Payment.Amount" class="form-label"></label><input asp-for="Payment.Amount" type="number" step="0.01" class="form-control" /></div>
+        <div class="col-md-3"><label asp-for="Payment.PaymentMethod" class="form-label"></label><select asp-for="Payment.PaymentMethod" class="form-select"><option>Cash</option><option>Card</option><option>Bank Transfer</option></select></div>
+        <div class="col-md-3"><label asp-for="Payment.PaymentDate" class="form-label"></label><input asp-for="Payment.PaymentDate" class="form-control" /></div>
+        <div class="col-md-3"><label asp-for="Payment.Status" class="form-label"></label><select asp-for="Payment.Status" class="form-select"><option>Paid</option><option>Pending</option><option>Cancelled</option></select></div>
+        <div class="col-12"><label asp-for="Payment.Notes" class="form-label"></label><textarea asp-for="Payment.Notes" class="form-control" rows="4"></textarea></div>
+    </div>
+    <div class="mt-4"><button class="btn btn-primary">Register payment</button></div>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

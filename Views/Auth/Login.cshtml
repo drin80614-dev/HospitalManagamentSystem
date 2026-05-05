@@ -1,0 +1,91 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<section class="min-vh-100 d-flex align-items-center p-3 p-lg-5">
+    <div class="container">
+        <div class="row g-4 align-items-stretch">
+            <div class="col-lg-7">
+                <div class="h-100 glass-panel p-4 p-lg-5 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <img class="login-brand-logo" src="~/img/vlera-dent-logo.svg" alt="Vlera Dent" />
+                            <div>
+                                <div class="page-kicker">Dental clinic management platform</div>
+                                <h1 class="display-5 fw-bold mb-0">Vlera Dent</h1>
+                            </div>
+                        </div>
+                        <p class="lead text-soft mb-5">
+                            A modern dental clinic workspace for admin, dentist, and reception staff.
+                        </p>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-sm-4">
+                            <div class="metric-card" style="--accent-color: var(--hms-blue)">
+                                <div class="icon"><i class="bi bi-shield-check"></i></div>
+                                <div class="metric-value">RBAC</div>
+                                <div class="metric-label">Secure role access</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="metric-card" style="--accent-color: var(--hms-teal)">
+                                <div class="icon"><i class="bi bi-clipboard2-pulse"></i></div>
+                                <div class="metric-value">EHR</div>
+                                <div class="metric-label">Dental workflow</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="metric-card" style="--accent-color: var(--hms-coral)">
+                                <div class="icon"><i class="bi bi-receipt"></i></div>
+                                <div class="metric-value">Billing</div>
+                                <div class="metric-label">Invoices and receipts</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="form-shell h-100">
+                    <div class="mb-4">
+                        <div class="page-kicker">Staff access</div>
+                        <h2 class="fw-bold mb-1">Sign in</h2>
+                        <p class="text-soft mb-0">Use your clinic account to continue.</p>
+                    </div>
+                    <form asp-action="Login" method="post" class="d-grid gap-3">
+                        <input type="hidden" asp-for="ReturnUrl" />
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                        <div>
+                            <label asp-for="Login" class="form-label fw-semibold"></label>
+                            <input asp-for="Login" class="form-control form-control-lg" autocomplete="username" />
+                            <span asp-validation-for="Login" class="text-danger small"></span>
+                        </div>
+                        <div>
+                            <label asp-for="Password" class="form-label fw-semibold"></label>
+                            <input asp-for="Password" class="form-control form-control-lg" autocomplete="current-password" />
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="form-check">
+                            <input asp-for="RememberMe" class="form-check-input" />
+                            <label asp-for="RememberMe" class="form-check-label">Keep me signed in for this shift</label>
+                        </div>
+                        <a class="small fw-semibold" asp-action="ForgotPassword">Forgot password?</a>
+                        <button class="btn btn-primary btn-lg" type="submit">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                        </button>
+                    </form>
+                    <div class="alert alert-info mt-4 mb-0">
+                        <strong>Seed users after SQL setup:</strong><br />
+                        admin@quantumcare.test / Admin123!<br />
+                        doctor1@quantumcare.test / Doctor123!<br />
+                        reception1@quantumcare.test / Reception123!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

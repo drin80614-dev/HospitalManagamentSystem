@@ -1,0 +1,19 @@
+@model ClinicalFormViewModel<Diagnosis>
+@{ ViewData["Title"] = "Add Diagnosis"; }
+
+<div class="page-heading"><div><div class="page-kicker">Doctor workflow</div><h1>Add diagnosis</h1></div></div>
+<form method="post" class="form-shell">
+    <input asp-for="Record.DoctorId" type="hidden" />
+    <div class="row g-3">
+        <div class="col-md-6"><label asp-for="Record.PatientId" class="form-label">Patient</label><select asp-for="Record.PatientId" class="form-select"><option value="">Select patient</option>@foreach (var p in Model.Patients){<option value="@p.Id">@p.FullName - @p.HospitalNumber</option>}</select></div>
+        <div class="col-md-6"><label asp-for="Record.DiseaseId" class="form-label">Disease reference</label><select asp-for="Record.DiseaseId" class="form-select"><option value="">Manual entry</option>@foreach (var d in Model.Diseases){<option value="@d.Id">@d.DiseaseName - @d.Category</option>}</select></div>
+        <div class="col-md-6"><label asp-for="Record.DiseaseName" class="form-label"></label><input asp-for="Record.DiseaseName" class="form-control" /></div>
+        <div class="col-md-3"><label asp-for="Record.IcdCode" class="form-label"></label><input asp-for="Record.IcdCode" class="form-control" /></div>
+        <div class="col-md-3"><label asp-for="Record.Severity" class="form-label"></label><select asp-for="Record.Severity" class="form-select"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></div>
+        <div class="col-md-4"><label asp-for="Record.DiagnosisDate" class="form-label"></label><input asp-for="Record.DiagnosisDate" type="date" class="form-control" /></div>
+        <div class="col-12"><label asp-for="Record.Description" class="form-label"></label><textarea asp-for="Record.Description" class="form-control" rows="4"></textarea></div>
+        <div class="col-12"><label asp-for="Record.TreatmentRecommendation" class="form-label"></label><textarea asp-for="Record.TreatmentRecommendation" class="form-control" rows="4"></textarea></div>
+    </div>
+    <div class="mt-4"><button class="btn btn-primary">Add diagnosis</button></div>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

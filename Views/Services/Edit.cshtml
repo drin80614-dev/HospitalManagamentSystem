@@ -1,0 +1,5 @@
+@model ServiceItem
+@{ ViewData["Title"] = "Edit Service"; }
+<div class="page-heading"><div><div class="page-kicker">Billing</div><h1>Edit @Model.ServiceName</h1></div></div>
+<form method="post" class="form-shell"><partial name="_ServiceForm" model="Model" /><div class="mt-4"><button class="btn btn-primary">Update service</button></div></form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,21 @@
+@model IReadOnlyList<Receptionist>
+@{
+    ViewData["Title"] = "Receptionists";
+}
+
+<div class="page-heading">
+    <div><div class="page-kicker">Front desk staff</div><h1>Receptionists</h1></div>
+    <a class="btn btn-primary" asp-action="Create"><i class="bi bi-headset me-2"></i>Create receptionist</a>
+</div>
+
+<div class="table-shell">
+    <table class="table align-middle">
+        <thead><tr><th>Name</th><th>Contact</th><th>Shift</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+        <tbody>
+        @foreach (var item in Model)
+        {
+            <tr><td><strong>@item.FullName</strong></td><td>@item.Phone<br /><span class="text-soft">@item.Email</span></td><td>@item.Shift</td><td><span class="badge-soft status-@item.Status">@item.Status</span></td><td class="text-end"><a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id"><i class="bi bi-pencil"></i></a></td></tr>
+        }
+        </tbody>
+    </table>
+</div>

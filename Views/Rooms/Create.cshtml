@@ -1,0 +1,5 @@
+@model Room
+@{ ViewData["Title"] = "Create Room"; }
+<div class="page-heading"><div><div class="page-kicker">Admin</div><h1>Create room</h1></div></div>
+<form method="post" class="form-shell"><partial name="_RoomForm" model="Model" /><div class="mt-4"><button class="btn btn-primary">Save room</button></div></form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,16 @@
+@model Room
+@{
+    var departments = ViewBag.Departments as IEnumerable<Department> ?? Enumerable.Empty<Department>();
+}
+<input type="hidden" asp-for="Id" />
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<div class="row g-3">
+    <div class="col-md-3"><label asp-for="RoomNumber" class="form-label"></label><input asp-for="RoomNumber" class="form-control" /></div>
+    <div class="col-md-3"><label asp-for="Floor" class="form-label"></label><input asp-for="Floor" class="form-control" /></div>
+    <div class="col-md-3"><label asp-for="RoomType" class="form-label"></label><select asp-for="RoomType" class="form-select"><option>General</option><option>Private</option><option>ICU</option><option>Emergency</option></select></div>
+    <div class="col-md-3"><label asp-for="DepartmentId" class="form-label">Department</label><select asp-for="DepartmentId" class="form-select"><option value="">General</option>@foreach (var d in departments){<option value="@d.Id">@d.Name</option>}</select></div>
+    <div class="col-md-3"><label asp-for="Capacity" class="form-label"></label><input asp-for="Capacity" type="number" class="form-control" /></div>
+    <div class="col-md-3"><label asp-for="CurrentOccupancy" class="form-label"></label><input asp-for="CurrentOccupancy" type="number" class="form-control" /></div>
+    <div class="col-md-3"><label asp-for="PricePerDay" class="form-label"></label><input asp-for="PricePerDay" type="number" step="0.01" class="form-control" /></div>
+    <div class="col-md-3"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-select"><option>Available</option><option>Occupied</option><option>Maintenance</option></select></div>
+</div>

@@ -1,0 +1,38 @@
+@model RoomAssignmentViewModel
+@{ ViewData["Title"] = "Assign Room"; }
+
+<div class="page-heading">
+    <div><div class="page-kicker">Admission workflow</div><h1>Assign patient to room</h1><p class="text-soft mb-0">The repository locks the room row and prevents over-capacity assignments.</p></div>
+</div>
+
+<form method="post" class="form-shell">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="Assignment.PatientId" class="form-label">Patient</label>
+            <select asp-for="Assignment.PatientId" class="form-select">
+                <option value="">Select patient</option>
+                @foreach (var patient in Model.Patients)
+                {
+                    <option value="@patient.Id">@patient.FullName - @patient.HospitalNumber</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Assignment.RoomId" class="form-label">Available room</label>
+            <select asp-for="Assignment.RoomId" class="form-select">
+                <option value="">Select room</option>
+                @foreach (var room in Model.Rooms)
+                {
+                    <option value="@room.Id">Room @room.RoomNumber - @room.RoomType (@room.FreeBeds free)</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4"><label asp-for="Assignment.AdmissionDate" class="form-label"></label><input asp-for="Assignment.AdmissionDate" type="date" class="form-control" /></div>
+        <div class="col-md-4"><label asp-for="Assignment.ExpectedDischargeDate" class="form-label"></label><input asp-for="Assignment.ExpectedDischargeDate" type="date" class="form-control" /></div>
+        <div class="col-md-4"><label asp-for="Assignment.ActualDischargeDate" class="form-label"></label><input asp-for="Assignment.ActualDischargeDate" type="date" class="form-control" /></div>
+        <div class="col-12"><label asp-for="Assignment.Notes" class="form-label"></label><textarea asp-for="Assignment.Notes" class="form-control" rows="4"></textarea></div>
+    </div>
+    <div class="mt-4"><button class="btn btn-primary"><i class="bi bi-check2 me-2"></i>Assign room</button></div>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

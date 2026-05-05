@@ -1,0 +1,53 @@
+@model IReadOnlyList<Appointment>
+@{
+    ViewData["Title"] = "Appointment Calendar";
+    var start = (DateTime)(ViewBag.Start ?? DateTime.Today);
+    var doctors = ViewBag.Doctors as IReadOnlyList<Doctor> ?? [];
+    Guid? doctorId = ViewBag.DoctorId as Guid?;
+    var days = Enumerable.Range(0, 7).Select(offset => start.AddDays(offset)).ToList();
+}
+
+<div class="page-heading">
+    <div><div class="page-kicker">Weekly schedule</div><h1>Appointment calendar</h1></div>
+    <div class="quick-actions">
+        <a class="btn btn-outline-secondary" asp-action="Calendar" asp-route-start="@start.AddDays(-7).ToString("yyyy-MM-dd")" asp-route-doctorId="@doctorId"><i class="bi bi-chevron-left"></i></a>
+        <a class="btn btn-outline-secondary" asp-action="Calendar" asp-route-start="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-doctorId="@doctorId">Today</a>
+        <a class="btn btn-outline-secondary" asp-action="Calendar" asp-route-start="@start.AddDays(7).ToString("yyyy-MM-dd")" asp-route-doctorId="@doctorId"><i class="bi bi-chevron-right"></i></a>
+    </div>
+</div>
+
+<form method="get" class="glass-panel p-3 mb-4">
+    <div class="row g-3 align-items-end">
+        @if (!User.IsInRole(AppRoles.Doctor))
+        {
+            <div class="col-md-5"><label class="form-label">Doctor</label><select class="form-select" name="doctorId"><option value="">All doctors</option>@foreach (var d in doctors){<option value="@d.Id" selected="@(doctorId == d.Id)">@d.FullName</option>}</select></div>
+        }
+        <div class="col-md-3"><label class="form-label">Week start</label><input class="form-control" type="date" name="start" value="@start.ToString("yyyy-MM-dd")" /></div>
+        <div class="col-md-2 d-grid"><button class="btn btn-primary">Open</button></div>
+    </div>
+</form>
+
+<div class="calendar-grid">
+    @foreach (var day in days)
+    {
+        var items = Model.Where(a => a.AppointmentDate.Date == day.Date).OrderBy(a => a.AppointmentTime).ToList();
+        <div class="calendar-day">
+            <div class="calendar-day-head">
+                <strong>@day.ToString("ddd")</strong>
+                <span>@day.ToString("dd MMM")</span>
+            </div>
+            @foreach (var item in items)
+            {
+                <div class="calendar-event status-@item.Status.Replace(" ", "")">
+                    <strong>@item.AppointmentTime.ToString(@"hh\:mm") @item.PatientName</strong>
+                    <span>@item.DoctorName</span>
+                    <small>@(item.ServiceName ?? item.Reason)</small>
+                </div>
+            }
+            @if (!items.Any())
+            {
+                <div class="text-soft small">No appointments</div>
+            }
+        </div>
+    }
+</div>

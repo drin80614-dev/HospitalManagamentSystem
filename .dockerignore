@@ -1,0 +1,9 @@
+.git
+.vs
+bin
+obj
+logs
+*.log
+appsettings.Local.json
+*.user
+*.suo

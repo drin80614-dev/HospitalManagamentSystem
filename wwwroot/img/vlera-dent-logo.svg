@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 280" role="img" aria-label="Vlera Dent logo">
+  <rect width="760" height="280" fill="none"/>
+  <path d="M65 172c68 70 177 92 326 82 142-9 252-51 310-128" fill="none" stroke="#0797d2" stroke-width="20" stroke-linecap="round"/>
+  <path d="M106 96c31-51 89-35 129-6 34 25 77 24 111-2 20-15 48-23 67-8 21 16 20 52 8 88-15 46-39 85-76 95-19 5-33-11-29-30 5-28-5-51-21-51-17 0-26 26-20 57 3 16-10 29-27 23-42-14-62-58-76-101-12-39-1-64-66-65z" fill="none" stroke="#0797d2" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M283 74c-18 13-39 16-63 8 24 25 51 30 80 12" fill="none" stroke="#0797d2" stroke-width="8" stroke-linecap="round"/>
+  <text x="405" y="82" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="900" fill="#2e3192" letter-spacing="2">ORDINANCE STOMATOLOGJIKE</text>
+  <text x="330" y="168" font-family="Inter, Arial, sans-serif" font-size="100" font-weight="900" fill="#2e3192" letter-spacing="-2">Vlera</text>
+  <text x="430" y="232" font-family="Inter, Arial, sans-serif" font-size="48" font-weight="900" fill="#0797d2" letter-spacing="18">DENT</text>
+</svg>

@@ -1,0 +1,19 @@
+@model RoomTransferViewModel
+@{ ViewData["Title"] = "Transfer Patient"; }
+
+<div class="page-heading">
+    <div><div class="page-kicker">Bed management</div><h1>Transfer patient</h1><p class="text-soft mb-0">Move an admitted patient to another available room.</p></div>
+</div>
+
+<form method="post" class="form-shell">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-6"><label asp-for="PatientId" class="form-label">Patient</label><select asp-for="PatientId" class="form-select"><option value="">Select patient</option>@foreach (var p in Model.Patients.Where(p => p.CurrentRoomId.HasValue)){<option value="@p.Id">@p.FullName - @p.CurrentRoomNumber</option>}</select></div>
+        <div class="col-md-6"><label asp-for="NewRoomId" class="form-label">New room</label><select asp-for="NewRoomId" class="form-select"><option value="">Select room</option>@foreach (var r in Model.Rooms){<option value="@r.Id">Room @r.RoomNumber - @r.RoomType (@r.FreeBeds free)</option>}</select></div>
+        <div class="col-md-4"><label asp-for="TransferDate" class="form-label"></label><input asp-for="TransferDate" type="date" class="form-control" /></div>
+        <div class="col-12"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" rows="4" class="form-control"></textarea></div>
+    </div>
+    <button class="btn btn-primary mt-4"><i class="bi bi-arrow-left-right me-2"></i>Transfer patient</button>
+</form>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

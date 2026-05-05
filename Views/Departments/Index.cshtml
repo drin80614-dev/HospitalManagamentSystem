@@ -1,0 +1,16 @@
+@model IReadOnlyList<Department>
+@{ ViewData["Title"] = "Departments"; }
+<div class="page-heading"><div><div class="page-kicker">Hospital structure</div><h1>Departments</h1></div><a class="btn btn-primary" asp-action="Create"><i class="bi bi-plus-lg me-2"></i>Department</a></div>
+<div class="row g-3">
+@foreach (var item in Model)
+{
+    <div class="col-md-6 col-xl-4">
+        <div class="glass-panel p-4 h-100">
+            <h4 class="fw-bold">@item.Name</h4>
+            <p class="text-soft">@item.Description</p>
+            <div class="d-flex justify-content-between"><span>@item.Location</span><span class="badge-soft status-@item.Status">@item.Status</span></div>
+            <a class="btn btn-sm btn-outline-primary mt-3" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+        </div>
+    </div>
+}
+</div>

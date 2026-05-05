@@ -1,0 +1,31 @@
+@model Prescription
+@{ ViewData["Title"] = "Print Prescription"; }
+
+<div class="page-heading no-print">
+    <div><div class="page-kicker">Printable</div><h1>Prescription</h1></div>
+    <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print</button>
+</div>
+
+<div class="print-surface">
+    <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Vlera Dent</h2>
+            <p class="mb-0">Pristina, Kosovo - Clinical Prescription</p>
+        </div>
+        <div class="text-end"><strong>Date</strong><br />@Model.PrescriptionDate.ToString("dd MMM yyyy")</div>
+    </div>
+    <div class="row mb-4">
+        <div class="col-md-6"><strong>Patient</strong><br />@Model.PatientName</div>
+        <div class="col-md-6"><strong>Doctor</strong><br />Dr. @Model.DoctorName<br />License: @Model.DoctorLicenseNumber</div>
+    </div>
+    <h4 class="fw-bold">@Model.MedicationName</h4>
+    <table class="table">
+        <tr><th>Dosage</th><td>@Model.Dosage</td></tr>
+        <tr><th>Frequency</th><td>@Model.Frequency</td></tr>
+        <tr><th>Duration</th><td>@Model.Duration</td></tr>
+        <tr><th>Instructions</th><td>@Model.Instructions</td></tr>
+    </table>
+    <div class="mt-5 pt-5 d-flex justify-content-end">
+        <div class="text-center" style="min-width: 240px; border-top: 1px solid #172033">Doctor signature</div>
+    </div>
+</div>

@@ -1,0 +1,5 @@
+@model Room
+@{ ViewData["Title"] = "Edit Room"; }
+<div class="page-heading"><div><div class="page-kicker">Room @Model.RoomNumber</div><h1>Edit room</h1></div></div>
+<form method="post" class="form-shell"><partial name="_RoomForm" model="Model" /><div class="mt-4"><button class="btn btn-primary">Update room</button></div></form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,46 @@
+@model ProfileViewModel
+@{ ViewData["Title"] = "My Profile"; }
+
+<div class="page-heading">
+    <div>
+        <div class="page-kicker">Account security</div>
+        <h1>My profile</h1>
+        <p class="text-soft mb-0">Manage your staff account and password.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="glass-panel p-4 h-100">
+            <div class="brand-mark mb-3"><i class="bi bi-person-badge"></i></div>
+            <h3 class="fw-bold">@Model.FullName</h3>
+            <div class="text-soft">@Model.Email</div>
+            <div class="mt-3"><span class="badge-soft">@Model.RoleName</span></div>
+            <div class="mt-3 small text-soft">Username: @Model.Username</div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <form method="post" class="form-shell">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label asp-for="CurrentPassword" class="form-label"></label>
+                    <input asp-for="CurrentPassword" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="NewPassword" class="form-label"></label>
+                    <input asp-for="NewPassword" class="form-control" />
+                    <span asp-validation-for="NewPassword" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ConfirmPassword" class="form-label"></label>
+                    <input asp-for="ConfirmPassword" class="form-control" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                </div>
+            </div>
+            <button class="btn btn-primary mt-4"><i class="bi bi-shield-lock me-2"></i>Change password</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

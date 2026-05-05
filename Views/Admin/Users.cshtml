@@ -1,0 +1,73 @@
+@model UsersAdminViewModel
+@{
+    ViewData["Title"] = "Users";
+}
+
+<div class="page-heading">
+    <div>
+        <div class="page-kicker">Admin security</div>
+        <h1>Users</h1>
+        <p class="text-soft mb-0">Create and monitor hospital staff accounts by role.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="table-shell">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Last login</th></tr></thead>
+                    <tbody>
+                    @foreach (var user in Model.Users)
+                    {
+                        <tr>
+                            <td><strong>@user.FullName</strong><br /><span class="text-soft">@user.Username - @user.Email</span></td>
+                            <td>@user.RoleName</td>
+                            <td><span class="badge-soft status-@user.Status">@user.Status</span></td>
+                            <td>@user.LastLoginAt?.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <form method="post" asp-action="CreateUser" class="form-shell">
+            <h5 class="fw-bold">Create user</h5>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3">
+                <label asp-for="NewUser.FirstName" class="form-label"></label>
+                <input asp-for="NewUser.FirstName" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="NewUser.LastName" class="form-label"></label>
+                <input asp-for="NewUser.LastName" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="NewUser.Username" class="form-label"></label>
+                <input asp-for="NewUser.Username" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="NewUser.Email" class="form-label"></label>
+                <input asp-for="NewUser.Email" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="NewUser.Password" class="form-label"></label>
+                <input asp-for="NewUser.Password" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="NewUser.RoleId" class="form-label">Role</label>
+                <select asp-for="NewUser.RoleId" class="form-select">
+                    @foreach (var role in Model.Roles)
+                    {
+                        <option value="@role.Id">@role.Name</option>
+                    }
+                </select>
+            </div>
+            <button class="btn btn-primary w-100" type="submit"><i class="bi bi-person-plus me-2"></i>Create account</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

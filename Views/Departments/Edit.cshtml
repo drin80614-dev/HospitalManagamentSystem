@@ -1,0 +1,5 @@
+@model Department
+@{ ViewData["Title"] = "Edit Department"; }
+<div class="page-heading"><div><div class="page-kicker">Admin</div><h1>Edit @Model.Name</h1></div></div>
+<form method="post" class="form-shell"><partial name="_DepartmentForm" model="Model" /><div class="mt-4"><button class="btn btn-primary">Update department</button></div></form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

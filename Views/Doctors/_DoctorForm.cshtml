@@ -1,0 +1,17 @@
+@model Doctor
+@{
+    var departments = ViewBag.Departments as IEnumerable<Department> ?? Enumerable.Empty<Department>();
+}
+<input type="hidden" asp-for="Id" />
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<div class="row g-3">
+    <div class="col-md-6"><label asp-for="FirstName" class="form-label"></label><input asp-for="FirstName" class="form-control" /><span asp-validation-for="FirstName" class="text-danger small"></span></div>
+    <div class="col-md-6"><label asp-for="LastName" class="form-label"></label><input asp-for="LastName" class="form-control" /><span asp-validation-for="LastName" class="text-danger small"></span></div>
+    <div class="col-md-6"><label asp-for="Specialization" class="form-label"></label><input asp-for="Specialization" class="form-control" /></div>
+    <div class="col-md-6"><label asp-for="DepartmentId" class="form-label">Department</label><select asp-for="DepartmentId" class="form-select"><option value="">Select</option>@foreach (var d in departments){<option value="@d.Id">@d.Name</option>}</select></div>
+    <div class="col-md-4"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" /></div>
+    <div class="col-md-4"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" /></div>
+    <div class="col-md-4"><label asp-for="LicenseNumber" class="form-label"></label><input asp-for="LicenseNumber" class="form-control" /></div>
+    <div class="col-md-8"><label asp-for="WorkingSchedule" class="form-label"></label><input asp-for="WorkingSchedule" class="form-control" placeholder="Mon-Fri 08:00-16:00" /></div>
+    <div class="col-md-4"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-select"><option>Active</option><option>Inactive</option></select></div>
+</div>

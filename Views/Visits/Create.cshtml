@@ -1,0 +1,20 @@
+@model ClinicalFormViewModel<Visit>
+@{ ViewData["Title"] = "Add Visit"; }
+
+<div class="page-heading"><div><div class="page-kicker">Doctor workflow</div><h1>Add visit record</h1></div></div>
+<form method="post" class="form-shell">
+    <input asp-for="Record.DoctorId" type="hidden" />
+    <input asp-for="Record.AppointmentId" type="hidden" />
+    <div class="row g-3">
+        <div class="col-md-6"><label asp-for="Record.PatientId" class="form-label">Patient</label><select asp-for="Record.PatientId" class="form-select"><option value="">Select patient</option>@foreach (var p in Model.Patients){<option value="@p.Id">@p.FullName - @p.HospitalNumber</option>}</select></div>
+        <div class="col-md-3"><label asp-for="Record.VisitDate" class="form-label"></label><input asp-for="Record.VisitDate" class="form-control" /></div>
+        <div class="col-md-3"><label asp-for="Record.VisitStatus" class="form-label"></label><select asp-for="Record.VisitStatus" class="form-select"><option>Open</option><option>Completed</option></select></div>
+        <div class="col-12"><label asp-for="Record.Symptoms" class="form-label"></label><textarea asp-for="Record.Symptoms" class="form-control" rows="3"></textarea></div>
+        <div class="col-md-6"><label asp-for="Record.Diagnosis" class="form-label"></label><textarea asp-for="Record.Diagnosis" class="form-control" rows="4"></textarea></div>
+        <div class="col-md-6"><label asp-for="Record.TreatmentPlan" class="form-label"></label><textarea asp-for="Record.TreatmentPlan" class="form-control" rows="4"></textarea></div>
+        <div class="col-md-6"><label asp-for="Record.FollowUpDate" class="form-label"></label><input asp-for="Record.FollowUpDate" type="date" class="form-control" /></div>
+        <div class="col-12"><label asp-for="Record.Notes" class="form-label"></label><textarea asp-for="Record.Notes" class="form-control" rows="3"></textarea></div>
+    </div>
+    <div class="mt-4"><button class="btn btn-primary">Save visit</button></div>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,39 @@
+@model NotificationsViewModel
+@{ ViewData["Title"] = "Notifications"; }
+
+<div class="page-heading">
+    <div><div class="page-kicker">Operational alerts</div><h1>Notifications</h1><p class="text-soft mb-0">@Model.UnreadCount unread alerts</p></div>
+</div>
+
+<div class="timeline-list">
+@foreach (var item in Model.Notifications)
+{
+    <div class="timeline-item">
+        <i class="bi @(item.IsRead ? "bi-check2-circle text-success" : "bi-bell text-primary")"></i>
+        <div class="flex-grow-1">
+            <div class="d-flex justify-content-between gap-3">
+                <strong>@item.Title</strong>
+                <span class="text-soft small">@item.CreatedAt.ToString("dd MMM HH:mm")</span>
+            </div>
+            <div class="text-soft">@item.Message</div>
+            <div class="d-flex gap-2 mt-2">
+                @if (!string.IsNullOrWhiteSpace(item.LinkUrl))
+                {
+                    <a class="btn btn-sm btn-outline-primary" href="@item.LinkUrl">Open</a>
+                }
+                @if (!item.IsRead)
+                {
+                    <form method="post" asp-action="Read">
+                        <input type="hidden" name="id" value="@item.Id" />
+                        <button class="btn btn-sm btn-outline-success">Mark read</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+}
+@if (!Model.Notifications.Any())
+{
+    <div class="empty-state glass-panel">No notifications yet.</div>
+}
+</div>

@@ -1,0 +1,17 @@
+@model ClinicalFormViewModel<LabTest>
+@{ ViewData["Title"] = "Request Lab Test"; }
+
+<div class="page-heading"><div><div class="page-kicker">Doctor workflow</div><h1>Request lab test</h1></div></div>
+<form method="post" class="form-shell">
+    <input asp-for="Record.DoctorId" type="hidden" />
+    <div class="row g-3">
+        <div class="col-md-6"><label asp-for="Record.PatientId" class="form-label">Patient</label><select asp-for="Record.PatientId" class="form-select"><option value="">Select patient</option>@foreach (var p in Model.Patients){<option value="@p.Id">@p.FullName - @p.HospitalNumber</option>}</select></div>
+        <div class="col-md-6"><label asp-for="Record.RequestedDate" class="form-label"></label><input asp-for="Record.RequestedDate" type="date" class="form-control" /></div>
+        <div class="col-md-5"><label asp-for="Record.TestName" class="form-label"></label><input asp-for="Record.TestName" class="form-control" /></div>
+        <div class="col-md-4"><label asp-for="Record.TestType" class="form-label"></label><input asp-for="Record.TestType" class="form-control" /></div>
+        <div class="col-md-3"><label asp-for="Record.Status" class="form-label"></label><select asp-for="Record.Status" class="form-select"><option>Requested</option><option>In Progress</option><option>Completed</option></select></div>
+        <div class="col-12"><label asp-for="Record.Result" class="form-label"></label><textarea asp-for="Record.Result" class="form-control" rows="4"></textarea></div>
+    </div>
+    <div class="mt-4"><button class="btn btn-primary">Request lab test</button></div>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

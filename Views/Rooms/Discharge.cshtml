@@ -1,0 +1,18 @@
+@model PatientDischargeViewModel
+@{ ViewData["Title"] = "Discharge Patient"; }
+
+<div class="page-heading">
+    <div><div class="page-kicker">Discharge workflow</div><h1>Discharge patient</h1><p class="text-soft mb-0">Close the active room assignment and free the bed.</p></div>
+</div>
+
+<form method="post" class="form-shell">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-8"><label asp-for="PatientId" class="form-label">Admitted patient</label><select asp-for="PatientId" class="form-select"><option value="">Select patient</option>@foreach (var p in Model.Patients.Where(p => p.CurrentRoomId.HasValue)){<option value="@p.Id">@p.FullName - @p.CurrentRoomNumber</option>}</select></div>
+        <div class="col-md-4"><label asp-for="DischargeDate" class="form-label"></label><input asp-for="DischargeDate" type="date" class="form-control" /></div>
+        <div class="col-12"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" rows="4" class="form-control"></textarea></div>
+    </div>
+    <button class="btn btn-primary mt-4"><i class="bi bi-box-arrow-right me-2"></i>Discharge patient</button>
+</form>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

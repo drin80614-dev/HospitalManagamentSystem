@@ -1,0 +1,5 @@
+@model Receptionist
+@{ ViewData["Title"] = "Create Receptionist"; }
+<div class="page-heading"><div><div class="page-kicker">Admin</div><h1>Create receptionist</h1></div></div>
+<form method="post" class="form-shell"><partial name="_ReceptionistForm" model="Model" /><div class="mt-4 d-flex gap-2"><button class="btn btn-primary">Save receptionist</button><a class="btn btn-outline-secondary" asp-action="Index">Cancel</a></div></form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

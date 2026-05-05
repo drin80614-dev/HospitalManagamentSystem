@@ -1,0 +1,30 @@
+@model GlobalSearchViewModel
+@{ ViewData["Title"] = "Search"; }
+
+<div class="page-heading">
+    <div>
+        <div class="page-kicker">Global search</div>
+        <h1>Results for "@Model.Query"</h1>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-6">
+        <div class="table-shell">
+            <div class="p-3"><h5 class="fw-bold mb-0">Patients</h5></div>
+            <table class="table"><tbody>@foreach (var p in Model.Patients){<tr><td><a class="fw-bold" asp-controller="Patients" asp-action="Details" asp-route-id="@p.Id">@p.FullName</a><br /><span class="text-soft">@p.HospitalNumber - @p.Phone</span></td><td><span class="badge-soft status-@p.Status">@p.Status</span></td></tr>}@if(!Model.Patients.Any()){<tr><td class="text-soft">No patients found.</td></tr>}</tbody></table>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="table-shell">
+            <div class="p-3"><h5 class="fw-bold mb-0">Doctors</h5></div>
+            <table class="table"><tbody>@foreach (var d in Model.Doctors){<tr><td><strong>@d.FullName</strong><br /><span class="text-soft">@d.Specialization - @d.DepartmentName</span></td><td><span class="badge-soft status-@d.Status">@d.Status</span></td></tr>}@if(!Model.Doctors.Any()){<tr><td class="text-soft">No doctors found.</td></tr>}</tbody></table>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="table-shell">
+            <div class="p-3"><h5 class="fw-bold mb-0">Appointments</h5></div>
+            <table class="table"><tbody>@foreach (var a in Model.Appointments){<tr><td><strong>@a.AppointmentNumber</strong><br /><span class="text-soft">@a.PatientName with @a.DoctorName - @a.AppointmentDate.ToString("dd MMM") @a.AppointmentTime.ToString(@"hh\:mm")</span></td><td><span class="badge-soft status-@a.Status.Replace(" ", "")">@a.Status</span></td></tr>}@if(!Model.Appointments.Any()){<tr><td class="text-soft">No appointments found.</td></tr>}</tbody></table>
+        </div>
+    </div>
+</div>

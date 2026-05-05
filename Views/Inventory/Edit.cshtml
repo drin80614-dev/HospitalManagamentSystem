@@ -1,0 +1,10 @@
+@model MedicationInventoryItem
+@{ ViewData["Title"] = "Edit Medication"; }
+
+<div class="page-heading"><div><div class="page-kicker">Inventory</div><h1>Edit medication</h1></div></div>
+<form method="post" class="form-shell">
+    <partial name="_InventoryForm" model="Model" />
+    <button class="btn btn-primary mt-4">Update medication</button>
+</form>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

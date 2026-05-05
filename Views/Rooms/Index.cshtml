@@ -1,0 +1,50 @@
+@model IReadOnlyList<Room>
+@{ ViewData["Title"] = "Rooms"; }
+
+<div class="page-heading">
+    <div><div class="page-kicker">Bed management</div><h1>Rooms</h1></div>
+    <div class="quick-actions">
+        <a class="btn btn-success" asp-action="Assign"><i class="bi bi-person-check me-2"></i>Assign patient</a>
+        <a class="btn btn-outline-primary" asp-action="Transfer"><i class="bi bi-arrow-left-right me-2"></i>Transfer</a>
+        <a class="btn btn-outline-danger" asp-action="Discharge"><i class="bi bi-box-arrow-right me-2"></i>Discharge</a>
+        @if (User.IsInRole(AppRoles.Admin))
+        {
+            <a class="btn btn-primary" asp-action="Create"><i class="bi bi-door-open me-2"></i>Create room</a>
+        }
+    </div>
+</div>
+
+<div class="row g-3">
+@foreach (var room in Model)
+{
+    var occupancy = room.Capacity == 0 ? 0 : (int)Math.Round(room.CurrentOccupancy * 100.0 / room.Capacity);
+    <div class="col-md-6 col-xl-4">
+        <div class="glass-panel p-4 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="page-kicker">@room.DepartmentName</div>
+                    <h3 class="fw-bold mb-0">Room @room.RoomNumber</h3>
+                    <p class="text-soft">@room.RoomType - Floor @room.Floor</p>
+                </div>
+                <span class="badge-soft status-@room.Status">@room.Status</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+                <span>Occupancy</span><strong>@room.CurrentOccupancy / @room.Capacity</strong>
+            </div>
+            <div class="progress mb-3" style="height: 10px">
+                <div class="progress-bar" style="width: @occupancy%"></div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-soft">Free beds</span><strong>@room.FreeBeds</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-soft">Price/day</span><strong>@room.PricePerDay.ToString("C")</strong>
+            </div>
+            @if (User.IsInRole(AppRoles.Admin))
+            {
+                <a class="btn btn-sm btn-outline-primary mt-3" asp-action="Edit" asp-route-id="@room.Id"><i class="bi bi-pencil me-1"></i>Edit</a>
+            }
+        </div>
+    </div>
+}
+</div>

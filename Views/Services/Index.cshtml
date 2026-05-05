@@ -1,0 +1,9 @@
+@model IReadOnlyList<ServiceItem>
+@{ ViewData["Title"] = "Dental Services"; }
+<div class="page-heading"><div><div class="page-kicker">Vlera Dent</div><h1>Sherbimet dentare dhe cmimet</h1></div><a class="btn btn-primary" asp-action="Create"><i class="bi bi-plus-lg me-2"></i>Shto sherbim</a></div>
+<div class="table-shell"><table class="table align-middle"><thead><tr><th>Service</th><th>Department</th><th>Price</th><th></th></tr></thead><tbody>
+@foreach (var item in Model)
+{
+    <tr><td><strong>@item.ServiceName</strong><br /><span class="text-soft">@item.Description</span></td><td>@item.DepartmentName</td><td>@item.Price.ToString("C")</td><td class="text-end"><a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id"><i class="bi bi-pencil"></i></a></td></tr>
+}
+</tbody></table></div>

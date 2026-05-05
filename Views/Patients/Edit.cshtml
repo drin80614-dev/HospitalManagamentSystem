@@ -1,0 +1,21 @@
+@model Patient
+@{
+    ViewData["Title"] = "Edit Patient";
+}
+
+<div class="page-heading">
+    <div>
+        <div class="page-kicker">@Model.HospitalNumber</div>
+        <h1>Edit @Model.FullName</h1>
+    </div>
+</div>
+
+<form method="post" class="form-shell">
+    <partial name="_PatientForm" model="Model" />
+    <div class="mt-4 d-flex gap-2">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-check2 me-2"></i>Update patient</button>
+        <a class="btn btn-outline-secondary" asp-action="Details" asp-route-id="@Model.Id">Cancel</a>
+    </div>
+</form>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

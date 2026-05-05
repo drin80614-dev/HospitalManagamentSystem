@@ -1,0 +1,13 @@
+@model IReadOnlyList<Prescription>
+<div class="table-responsive">
+    <table class="table">
+        <thead><tr><th>Date</th><th>Medication</th><th>Dosage</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var item in Model)
+        {
+            <tr><td>@item.PrescriptionDate.ToString("dd MMM yyyy")</td><td>@item.MedicationName<br /><span class="text-soft">@item.Instructions</span></td><td>@item.Dosage, @item.Frequency, @item.Duration</td><td><a class="btn btn-sm btn-outline-primary" asp-controller="Prescriptions" asp-action="Print" asp-route-id="@item.Id"><i class="bi bi-printer"></i></a></td></tr>
+        }
+        @if (!Model.Any()) { <tr><td colspan="4" class="text-soft text-center py-4">No prescriptions yet.</td></tr> }
+        </tbody>
+    </table>
+</div>

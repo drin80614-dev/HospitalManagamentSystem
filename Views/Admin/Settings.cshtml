@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="page-heading">
+    <div>
+        <div class="page-kicker">System settings</div>
+        <h1>Settings</h1>
+        <p class="text-soft mb-0">Runtime configuration is intentionally secret-free in source control.</p>
+    </div>
+</div>
+
+<div class="glass-panel p-4">
+    <h5 class="fw-bold">Supabase configuration</h5>
+    <p class="text-soft">Set real keys and the database connection string using environment variables before running in production.</p>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Setting</th><th>Recommended source</th></tr></thead>
+            <tbody>
+                <tr><td>Supabase URL</td><td><code>Supabase:Url</code></td></tr>
+                <tr><td>Anon key</td><td><code>Supabase__AnonKey</code></td></tr>
+                <tr><td>Service role key</td><td><code>Supabase__ServiceRoleKey</code></td></tr>
+                <tr><td>PostgreSQL connection</td><td><code>SUPABASE_DB_CONNECTION</code></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>

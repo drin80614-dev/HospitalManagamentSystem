@@ -1,0 +1,37 @@
+@model LabTestListViewModel
+@{ ViewData["Title"] = "Lab Tests"; }
+
+<div class="page-heading">
+    <div><div class="page-kicker">Clinical diagnostics</div><h1>Lab tests</h1></div>
+    @if (User.IsInRole(AppRoles.Doctor))
+    {
+        <a class="btn btn-primary" asp-action="Create"><i class="bi bi-plus-circle me-2"></i>Request lab test</a>
+    }
+</div>
+
+<form method="get" class="glass-panel p-3 mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">All</option>@foreach (var s in new[] { "Requested", "In Progress", "Completed" }){<option selected="@(Model.Status == s)">@s</option>}</select></div>
+        <div class="col-md-2 d-grid"><button class="btn btn-primary">Filter</button></div>
+    </div>
+</form>
+
+<div class="table-shell">
+    <table class="table align-middle">
+        <thead><tr><th>Test</th><th>Patient</th><th>Doctor</th><th>Requested</th><th>Status</th><th class="text-end">Result</th></tr></thead>
+        <tbody>
+        @foreach (var item in Model.LabTests)
+        {
+            <tr>
+                <td><strong>@item.TestName</strong><br /><span class="text-soft">@item.TestType</span></td>
+                <td>@item.PatientName</td>
+                <td>@item.DoctorName</td>
+                <td>@item.RequestedDate.ToString("dd MMM yyyy")</td>
+                <td><span class="badge-soft status-@item.Status.Replace(" ", "")">@item.Status</span></td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" asp-action="Result" asp-route-id="@item.Id"><i class="bi bi-clipboard2-pulse me-1"></i>Update</a></td>
+            </tr>
+        }
+        @if (!Model.LabTests.Any()) { <tr><td colspan="6" class="text-center text-soft py-4">No lab tests found.</td></tr> }
+        </tbody>
+    </table>
+</div>

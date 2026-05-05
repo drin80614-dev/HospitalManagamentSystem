@@ -1,0 +1,28 @@
+@model IReadOnlyList<Disease>
+@{ ViewData["Title"] = "Diseases"; }
+
+<div class="page-heading">
+    <div>
+        <div class="page-kicker">Clinical reference</div>
+        <h1>Diseases</h1>
+    </div>
+    @if (User.IsInRole(AppRoles.Admin))
+    {
+        <a class="btn btn-primary" asp-action="Create"><i class="bi bi-plus-lg me-2"></i>Disease</a>
+    }
+</div>
+
+<div class="row g-3">
+@foreach (var item in Model)
+{
+    <div class="col-md-6 col-xl-4">
+        <div class="glass-panel p-4 h-100">
+            <span class="badge-soft">@item.Category</span>
+            <h4 class="fw-bold mt-3">@item.DiseaseName</h4>
+            <p class="text-soft">@item.Description</p>
+            <strong>Common symptoms</strong>
+            <p class="mb-0">@item.CommonSymptoms</p>
+        </div>
+    </div>
+}
+</div>

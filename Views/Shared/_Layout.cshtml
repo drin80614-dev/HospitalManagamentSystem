@@ -1,0 +1,144 @@
+@{
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var role = User.FindFirstValue(ClaimTypes.Role) ?? "";
+    var userName = User.Identity?.Name ?? "Vlera Dent team";
+}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light" data-hms-lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Vlera Dent</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+@if (!isAuthenticated)
+{
+    <main class="auth-shell">
+        <div class="language-switch auth-language-switch">
+            <button class="btn btn-sm btn-outline-primary no-loading language-toggle" type="button" data-lang="sq">SQ</button>
+            <button class="btn btn-sm btn-outline-primary no-loading language-toggle active" type="button" data-lang="en">EN</button>
+        </div>
+        @RenderBody()
+    </main>
+}
+else
+{
+    <div class="app-shell">
+        <aside class="sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="appSidebar">
+            <div class="sidebar-brand">
+                <img class="brand-logo" src="~/img/vlera-dent-logo.svg" alt="Vlera Dent" />
+                <div>
+                    <div class="brand-title">Vlera Dent</div>
+                    <div class="brand-subtitle">Dental Clinic OS</div>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a asp-controller="Dashboard" asp-action="Index"><i class="bi bi-grid-1x2"></i><span>Dashboard</span></a>
+                @if (User.IsInRole(AppRoles.Admin))
+                {
+                    <a asp-controller="Admin" asp-action="Users"><i class="bi bi-person-gear"></i><span>Users</span></a>
+                    <a asp-controller="Doctors" asp-action="Index"><i class="bi bi-heart-pulse"></i><span>Doctors</span></a>
+                    <a asp-controller="Receptionists" asp-action="Index"><i class="bi bi-headset"></i><span>Receptionists</span></a>
+                    <a asp-controller="Departments" asp-action="Index"><i class="bi bi-diagram-3"></i><span>Departments</span></a>
+                    <a asp-controller="Services" asp-action="Index"><i class="bi bi-cash-coin"></i><span>Services</span></a>
+                    <a asp-controller="Payments" asp-action="Index"><i class="bi bi-receipt-cutoff"></i><span>Payments</span></a>
+                    <a asp-controller="Inventory" asp-action="Index"><i class="bi bi-capsule-pill"></i><span>Inventory</span></a>
+                    <a asp-controller="Reports" asp-action="Index"><i class="bi bi-bar-chart-line"></i><span>Reports</span></a>
+                }
+                @if (User.IsInRole(AppRoles.Doctor))
+                {
+                    <a asp-controller="Doctor" asp-action="MyPatients"><i class="bi bi-person-lines-fill"></i><span>My Patients</span></a>
+                    <a asp-controller="Doctor" asp-action="MyAppointments"><i class="bi bi-calendar2-week"></i><span>My Appointments</span></a>
+                    <a asp-controller="Prescriptions" asp-action="Create"><i class="bi bi-capsule"></i><span>Prescription</span></a>
+                    <a asp-controller="LabTests" asp-action="Create"><i class="bi bi-eyedropper"></i><span>Lab Request</span></a>
+                    <a asp-controller="LabTests" asp-action="Index"><i class="bi bi-clipboard2-pulse"></i><span>Lab Results</span></a>
+                    <a asp-controller="Inventory" asp-action="Index"><i class="bi bi-capsule-pill"></i><span>Dental Inventory</span></a>
+                }
+                @if (User.IsInRole(AppRoles.Receptionist))
+                {
+                    <a asp-controller="Receptionist" asp-action="RegisterPatient"><i class="bi bi-person-plus"></i><span>Register Patient</span></a>
+                    <a asp-controller="Receptionist" asp-action="Patients"><i class="bi bi-search-heart"></i><span>Patients</span></a>
+                    <a asp-controller="Receptionist" asp-action="CreateAppointment"><i class="bi bi-calendar-plus"></i><span>Appointment</span></a>
+                    <a asp-controller="Payments" asp-action="Create"><i class="bi bi-receipt"></i><span>Payment</span></a>
+                }
+                @if (!User.IsInRole(AppRoles.Doctor))
+                {
+                    <a asp-controller="Patients" asp-action="Index"><i class="bi bi-people"></i><span>Patients</span></a>
+                    <a asp-controller="Appointments" asp-action="Index"><i class="bi bi-calendar-check"></i><span>Appointments</span></a>
+                }
+            </nav>
+            <div class="sidebar-foot">
+                <div class="role-pill">@role</div>
+                <a class="logout-link" asp-controller="Auth" asp-action="Logout"><i class="bi bi-box-arrow-left"></i> Logout</a>
+            </div>
+        </aside>
+        <div class="main-panel">
+            <header class="topbar">
+                <button class="btn icon-btn d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#appSidebar" aria-label="Open menu">
+                    <i class="bi bi-list"></i>
+                </button>
+                <form class="global-search" asp-controller="Search" asp-action="Index" method="get">
+                    <i class="bi bi-search"></i>
+                    <input type="search" name="q" placeholder="Search patients, dentists, appointments" autocomplete="off" />
+                </form>
+                <div class="language-switch">
+                    <button class="btn btn-sm btn-outline-primary no-loading language-toggle" type="button" data-lang="sq">SQ</button>
+                    <button class="btn btn-sm btn-outline-primary no-loading language-toggle active" type="button" data-lang="en">EN</button>
+                </div>
+                <button class="btn icon-btn" id="themeToggle" type="button" data-bs-toggle="tooltip" data-bs-title="Toggle theme">
+                    <i class="bi bi-moon-stars"></i>
+                </button>
+                <a class="btn icon-btn" asp-controller="Notifications" asp-action="Index" data-bs-toggle="tooltip" data-bs-title="Notifications">
+                    <i class="bi bi-bell"></i>
+                </a>
+                <div class="user-chip">
+                    <div class="avatar">@userName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Substring(0, 1)</div>
+                    <div>
+                        <a class="text-decoration-none fw-bold" asp-controller="Account" asp-action="Profile">@userName</a>
+                        <span>@role</span>
+                    </div>
+                </div>
+            </header>
+            <main class="content-wrap">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+}
+
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    @if (TempData["Success"] is string success)
+    {
+        <div class="toast align-items-center text-bg-success border-0 show" role="alert">
+            <div class="d-flex">
+                <div class="toast-body"><i class="bi bi-check-circle me-2"></i>@success</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    }
+    @if (TempData["Error"] is string error)
+    {
+        <div class="toast align-items-center text-bg-danger border-0 show" role="alert">
+            <div class="d-flex">
+                <div class="toast-body"><i class="bi bi-exclamation-triangle me-2"></i>@error</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    }
+</div>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

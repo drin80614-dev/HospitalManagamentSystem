@@ -1,0 +1,93 @@
+@model PatientDetailsViewModel
+@{
+    ViewData["Title"] = Model.Patient.FullName;
+}
+
+<div class="page-heading">
+    <div>
+        <div class="page-kicker">@Model.Patient.HospitalNumber</div>
+        <h1>@Model.Patient.FullName</h1>
+        <p class="text-soft mb-0">@Model.Patient.Gender, @Model.Patient.Age years - @Model.Patient.PersonalNumber</p>
+    </div>
+    <div class="quick-actions no-print">
+        <button class="btn btn-outline-primary" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print profile</button>
+        @if (User.IsInRole(AppRoles.Doctor))
+        {
+            <a class="btn btn-primary" asp-controller="Visits" asp-action="Create" asp-route-patientId="@Model.Patient.Id"><i class="bi bi-journal-medical me-2"></i>Visit</a>
+            <a class="btn btn-outline-primary" asp-controller="Prescriptions" asp-action="Create" asp-route-patientId="@Model.Patient.Id"><i class="bi bi-capsule me-2"></i>Prescription</a>
+        }
+        @if (User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.Receptionist))
+        {
+            <a class="btn btn-primary" asp-controller="Appointments" asp-action="Create" asp-route-patientId="@Model.Patient.Id"><i class="bi bi-calendar-plus me-2"></i>Appointment</a>
+            <a class="btn btn-outline-primary" asp-controller="Payments" asp-action="Create" asp-route-patientId="@Model.Patient.Id"><i class="bi bi-receipt me-2"></i>Payment</a>
+        }
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-4">
+        <div class="glass-panel p-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="brand-mark"><i class="bi bi-person-vcard"></i></div>
+                <div>
+                    <h4 class="fw-bold mb-0">@Model.Patient.FullName</h4>
+                    <span class="badge-soft status-@Model.Patient.Status">@Model.Patient.Status</span>
+                </div>
+            </div>
+            <dl class="row mb-0">
+                <dt class="col-5">Phone</dt><dd class="col-7">@Model.Patient.Phone</dd>
+                <dt class="col-5">Email</dt><dd class="col-7">@Model.Patient.Email</dd>
+                <dt class="col-5">Blood</dt><dd class="col-7">@Model.Patient.BloodType</dd>
+                <dt class="col-5">Doctor</dt><dd class="col-7">@Model.Patient.AssignedDoctorName</dd>
+                <dt class="col-5">Emergency</dt><dd class="col-7">@Model.Patient.EmergencyContactName<br />@Model.Patient.EmergencyContactPhone</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="col-xl-8">
+        <div class="glass-panel p-3">
+            <ul class="nav nav-pills gap-2 mb-3 no-print" id="patientTabs" role="tablist">
+                @foreach (var tab in new[] { "Basic", "Medical", "Visits", "Prescriptions", "Payments", "Documents" })
+                {
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link @(tab == "Basic" ? "active" : "")" data-bs-toggle="pill" data-bs-target="#tab-@tab" type="button">@tab</button>
+                    </li>
+                }
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="tab-Basic">
+                    <h5 class="fw-bold">Basic information</h5>
+                    <p>@Model.Patient.Address</p>
+                    <div class="row g-3">
+                        <div class="col-md-6"><strong>Allergies</strong><p class="text-soft">@Model.Patient.Allergies</p></div>
+                        <div class="col-md-6"><strong>Dental notes</strong><p class="text-soft">@Model.Patient.ChronicDiseases</p></div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="tab-Medical">
+                    <h5 class="fw-bold">Medical history</h5>
+                    <ul class="timeline-list">
+                        @foreach (var item in Model.Visits.Take(5))
+                        {
+                            <li class="timeline-item"><i class="bi bi-journal-medical text-success"></i><div><strong>@item.VisitDate.ToString("dd MMM yyyy")</strong><div class="text-soft">@item.Diagnosis</div></div></li>
+                        }
+                    </ul>
+                </div>
+                <div class="tab-pane fade" id="tab-Visits">
+                    <partial name="_VisitTable" model="Model.Visits" />
+                </div>
+                <div class="tab-pane fade" id="tab-Prescriptions">
+                    <partial name="_PrescriptionTable" model="Model.Prescriptions" />
+                </div>
+                <div class="tab-pane fade" id="tab-Payments">
+                    <partial name="_PaymentTable" model="Model.Payments" />
+                </div>
+                <div class="tab-pane fade" id="tab-Documents">
+                    <div class="empty-state">
+                        <i class="bi bi-folder2-open display-5 text-primary"></i>
+                        <h5 class="fw-bold mt-3">Documents workspace</h5>
+                        <p class="text-soft mb-0">Use print profile, prescriptions, invoices, and exported reports as the patient document set.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

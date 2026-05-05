@@ -1,0 +1,111 @@
+@model PatientListViewModel
+@{
+    ViewData["Title"] = "Patients";
+}
+
+<div class="page-heading">
+    <div>
+        <div class="page-kicker">Patient management</div>
+        <h1>Patients</h1>
+        <p class="text-soft mb-0">Search, filter, open profiles, and coordinate dental appointments.</p>
+    </div>
+    @if (User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.Receptionist))
+    {
+        <a class="btn btn-primary" asp-action="Create"><i class="bi bi-person-plus me-2"></i>Register patient</a>
+    }
+</div>
+
+<form method="get" class="glass-panel p-3 mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-lg-4">
+            <label class="form-label">Search</label>
+            <input class="form-control" name="search" value="@Model.Search" placeholder="Name, hospital no, personal no, phone" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Status</label>
+            <select class="form-select" name="status">
+                <option value="">All</option>
+                @foreach (var status in new[] { "Active", "Admitted", "Discharged" })
+                {
+                    <option value="@status" selected="@(Model.Status == status)">@status</option>
+                }
+            </select>
+        </div>
+        @if (!User.IsInRole(AppRoles.Doctor))
+        {
+            <div class="col-md-3">
+                <label class="form-label">Doctor</label>
+                <select class="form-select" name="doctorId">
+                    <option value="">All doctors</option>
+                    @foreach (var doctor in Model.Doctors)
+                    {
+                        <option value="@doctor.Id" selected="@(Model.DoctorId == doctor.Id)">@doctor.FullName</option>
+                    }
+                </select>
+            </div>
+        }
+        <div class="col-md-2 d-grid">
+            <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+        </div>
+    </div>
+</form>
+
+<div class="table-shell">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Patient</th>
+                    <th>Contact</th>
+                    <th>Doctor</th>
+                    <th>Registered</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var patient in Model.Patients)
+            {
+                <tr>
+                    <td>
+                        <a class="fw-bold" asp-action="Details" asp-route-id="@patient.Id">@patient.FullName</a>
+                        <div class="text-soft">@patient.HospitalNumber - @patient.Gender, @patient.Age</div>
+                    </td>
+                    <td>@patient.Phone<br /><span class="text-soft">@patient.Email</span></td>
+                    <td>@(patient.AssignedDoctorName ?? "Unassigned")</td>
+                    <td>@patient.RegistrationDate.ToString("dd MMM yyyy")</td>
+                    <td><span class="badge-soft status-@patient.Status">@patient.Status</span></td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@patient.Id"><i class="bi bi-eye"></i></a>
+                        @if (User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.Receptionist))
+                        {
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@patient.Id"><i class="bi bi-pencil"></i></a>
+                        }
+                        @if (User.IsInRole(AppRoles.Admin))
+                        {
+                            <form class="d-inline js-confirm-delete" method="post" asp-action="Delete" asp-route-id="@patient.Id">
+                                <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (!Model.Patients.Any())
+            {
+                <tr><td colspan="6"><div class="empty-state">No patients match the current filters.</div></td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<nav class="mt-3">
+    <ul class="pagination">
+        @for (var i = 1; i <= Model.TotalPages; i++)
+        {
+            <li class="page-item @(i == Model.Page ? "active" : "")">
+                <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-doctorId="@Model.DoctorId">@i</a>
+            </li>
+        }
+    </ul>
+</nav>

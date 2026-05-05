@@ -1,0 +1,70 @@
+@model PaymentEditViewModel
+@{ ViewData["Title"] = "Edit Payment"; }
+
+<div class="page-heading">
+    <div>
+        <div class="page-kicker">Billing control</div>
+        <h1>Edit payment</h1>
+        <p class="text-soft mb-0">Update payment status after it has been registered.</p>
+    </div>
+    <a class="btn btn-outline-secondary" asp-action="Index"><i class="bi bi-arrow-left me-2"></i>Back to payments</a>
+</div>
+
+<div class="form-shell">
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="mini-stat">
+                <span>Patient</span>
+                <strong>@Model.PatientName</strong>
+                <small>@Model.HospitalNumber</small>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mini-stat">
+                <span>Service</span>
+                <strong>@Model.ServiceName</strong>
+                <small>@Model.PaymentDate.ToString("dd MMM yyyy HH:mm")</small>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mini-stat">
+                <span>Amount</span>
+                <strong>@Model.Amount.ToString("C")</strong>
+                <small>@Model.PaymentMethod</small>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mini-stat">
+                <span>Current status</span>
+                <strong><span class="badge-soft status-@Model.Status">@Model.Status</span></strong>
+                <small>Invoice status follows cancellation.</small>
+            </div>
+        </div>
+    </div>
+
+    <form method="post">
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" class="form-select">
+                    <option>Paid</option>
+                    <option>Pending</option>
+                    <option>Cancelled</option>
+                </select>
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+            <div class="col-md-8">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="4"></textarea>
+            </div>
+        </div>
+        <div class="mt-4 d-flex gap-2">
+            <button class="btn btn-primary"><i class="bi bi-check2-circle me-2"></i>Save changes</button>
+            <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

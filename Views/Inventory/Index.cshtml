@@ -1,0 +1,44 @@
+@model InventoryViewModel
+@{ ViewData["Title"] = "Dental Inventory"; }
+
+<div class="page-heading">
+    <div><div class="page-kicker">Vlera Dent</div><h1>Inventari stomatologjik</h1></div>
+    @if (User.IsInRole(AppRoles.Admin))
+    {
+        <a class="btn btn-primary" asp-action="Create"><i class="bi bi-plus-circle me-2"></i>Shto artikull</a>
+    }
+</div>
+
+<form method="get" class="glass-panel p-3 mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-6"><label class="form-label">Kerko</label><input class="form-control" name="search" value="@Model.Search" placeholder="Artikull, kategori, furnitor" /></div>
+        <div class="col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="lowStockOnly" value="true" checked="@Model.LowStockOnly" /><label class="form-check-label">Vetem stok i ulet</label></div></div>
+        <div class="col-md-3 d-grid"><button class="btn btn-primary"><i class="bi bi-funnel me-2"></i>Filtro</button></div>
+    </div>
+</form>
+
+<div class="table-shell">
+    <table class="table align-middle">
+        <thead><tr><th>Artikulli</th><th>Kategoria</th><th>Stoku</th><th>Skadimi</th><th>Furnitori</th><th>Statusi</th><th class="text-end">Veprime</th></tr></thead>
+        <tbody>
+        @foreach (var item in Model.Items)
+        {
+            <tr>
+                <td><strong>@item.MedicationName</strong><br /><span class="text-soft">@item.Unit</span></td>
+                <td>@item.Category</td>
+                <td><strong>@item.QuantityInStock</strong> / minimumi @item.ReorderLevel</td>
+                <td>@(item.ExpiryDate?.ToString("dd MMM yyyy") ?? "-")</td>
+                <td>@item.Supplier</td>
+                <td><span class="badge-soft status-@(item.IsExpired ? "Cancelled" : item.IsLowStock ? "Pending" : "Available")">@(item.IsExpired ? "Skaduar" : item.IsLowStock ? "Stok i ulet" : item.Status)</span></td>
+                <td class="text-end">
+                    @if (User.IsInRole(AppRoles.Admin))
+                    {
+                        <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@item.Id"><i class="bi bi-pencil me-1"></i>Ndrysho</a>
+                    }
+                </td>
+            </tr>
+        }
+        @if (!Model.Items.Any()) { <tr><td colspan="7" class="text-center text-soft py-4">Nuk u gjet asnje artikull.</td></tr> }
+        </tbody>
+    </table>
+</div>

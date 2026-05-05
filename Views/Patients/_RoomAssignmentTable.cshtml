@@ -1,0 +1,13 @@
+@model IReadOnlyList<PatientRoomAssignment>
+<div class="table-responsive">
+    <table class="table">
+        <thead><tr><th>Room</th><th>Type</th><th>Admission</th><th>Expected discharge</th><th>Actual discharge</th></tr></thead>
+        <tbody>
+        @foreach (var item in Model)
+        {
+            <tr><td>@item.RoomNumber</td><td>@item.RoomType</td><td>@item.AdmissionDate.ToString("dd MMM yyyy")</td><td>@item.ExpectedDischargeDate?.ToString("dd MMM yyyy")</td><td>@item.ActualDischargeDate?.ToString("dd MMM yyyy")</td></tr>
+        }
+        @if (!Model.Any()) { <tr><td colspan="5" class="text-soft text-center py-4">No room assignments yet.</td></tr> }
+        </tbody>
+    </table>
+</div>
