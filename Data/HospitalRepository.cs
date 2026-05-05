@@ -98,17 +98,46 @@ public class HospitalRepository
                 where lower(existing.medication_name) = lower(seed.medication_name)
             );
 
-            update users set first_name = 'Vlorentina', last_name = 'Sahiti', updated_at = now()
-            where id in ('30000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000002');
+            update users
+            set username = 'admin@vleradent.com',
+                email = 'admin@vleradent.com',
+                first_name = 'Admin',
+                last_name = 'Vlera Dent',
+                updated_at = now()
+            where id = '30000000-0000-0000-0000-000000000001';
+
+            update users
+            set username = 'vlorentina.sahiti@vleradent.com',
+                email = 'vlorentina.sahiti@vleradent.com',
+                first_name = 'Vlorentina',
+                last_name = 'Sahiti',
+                updated_at = now()
+            where id = '30000000-0000-0000-0000-000000000002';
+
+            update users
+            set username = 'reception@vleradent.com',
+                email = 'reception@vleradent.com',
+                first_name = 'Reception',
+                last_name = 'Vlera Dent',
+                updated_at = now()
+            where id = '30000000-0000-0000-0000-000000000005';
 
             update doctors
             set first_name = 'Vlorentina',
                 last_name = 'Sahiti',
                 specialization = 'Stomatologe',
-                email = 'vlorentina.sahiti@vleradent.test',
+                email = 'vlorentina.sahiti@vleradent.com',
                 status = 'Active',
                 updated_at = now()
             where id = '40000000-0000-0000-0000-000000000001';
+
+            update receptionists
+            set first_name = 'Reception',
+                last_name = 'Vlera Dent',
+                email = 'reception@vleradent.com',
+                status = 'Active',
+                updated_at = now()
+            where id = '50000000-0000-0000-0000-000000000001';
 
             update doctors
             set status = 'Inactive', updated_at = now()

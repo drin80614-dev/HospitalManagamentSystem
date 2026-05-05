@@ -12,7 +12,44 @@
 </div>
 
 <form method="post" class="form-shell">
-    <partial name="_PatientForm" model="Model" />
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <input asp-for="RegistrationDate" type="hidden" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+    <input asp-for="Status" type="hidden" value="Active" />
+    <input asp-for="DateOfBirth" type="hidden" value="@DateTime.Today.AddYears(-30).ToString("yyyy-MM-dd")" />
+    <input asp-for="Gender" type="hidden" value="Unspecified" />
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="FirstName" class="form-label">Emri</label>
+            <input asp-for="FirstName" class="form-control" autocomplete="given-name" />
+            <span asp-validation-for="FirstName" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="LastName" class="form-label">Mbiemri</label>
+            <input asp-for="LastName" class="form-control" autocomplete="family-name" />
+            <span asp-validation-for="LastName" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Phone" class="form-label">Numri i telefonit</label>
+            <input asp-for="Phone" class="form-control" autocomplete="tel" placeholder="+383..." />
+            <span asp-validation-for="Phone" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="AssignedDoctorId" class="form-label">Doktori</label>
+            <select asp-for="AssignedDoctorId" class="form-select">
+                <option value="">Zgjedh doktorin</option>
+                @foreach (var doctor in (ViewBag.Doctors as IEnumerable<Doctor> ?? Enumerable.Empty<Doctor>()))
+                {
+                    <option value="@doctor.Id">@doctor.FullName - @doctor.Specialization</option>
+                }
+            </select>
+            <span asp-validation-for="AssignedDoctorId" class="text-danger small"></span>
+        </div>
+        <div class="col-12">
+            <div class="alert alert-light border mb-0">
+                Data e regjistrimit ruhet automatikisht: <strong>@DateTime.Today.ToString("dd.MM.yyyy")</strong>
+            </div>
+        </div>
+    </div>
     <div class="mt-4 d-flex gap-2">
         <button class="btn btn-primary" type="submit"><i class="bi bi-check2 me-2"></i>Save patient</button>
         <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>

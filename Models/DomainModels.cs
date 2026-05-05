@@ -133,6 +133,7 @@ public class Patient : EntityBase
     [StringLength(30)]
     public string HospitalNumber { get; set; } = string.Empty;
 
+    [Required]
     public Guid? AssignedDoctorId { get; set; }
     public Guid? CurrentRoomId { get; set; }
 
@@ -142,16 +143,16 @@ public class Patient : EntityBase
     [Required, StringLength(80)]
     public string LastName { get; set; } = string.Empty;
 
-    [Required, DataType(DataType.Date)]
+    [DataType(DataType.Date)]
     public DateTime DateOfBirth { get; set; } = DateTime.Today.AddYears(-30);
 
-    [Required, StringLength(20)]
+    [StringLength(20)]
     public string Gender { get; set; } = string.Empty;
 
-    [Required, StringLength(40)]
+    [StringLength(40)]
     public string PersonalNumber { get; set; } = string.Empty;
 
-    [Phone, StringLength(40)]
+    [Required, Phone, StringLength(40)]
     public string? Phone { get; set; }
 
     [EmailAddress, StringLength(160)]

@@ -379,11 +379,11 @@ insert into departments (id, name, description, location) values
 on conflict (id) do nothing;
 
 insert into users (id, role_id, username, email, password_hash, first_name, last_name) values
-('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','admin','admin@quantumcare.test','PBKDF2-SHA256$100000$Kvicsrb0fxDSC/9wbOFlKw==$sjaE2LQKBRKIHNlk7KDa0TqA/ztn+abCP6n/oUDa9T0=','Arben','Krasniqi'),
-('30000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000002','doctor1','doctor1@quantumcare.test','PBKDF2-SHA256$100000$+7QomWt7oXQCq7CFK3sbAA==$GGXME0KqylmWA7/LSjCzRlTxEH5GtsyJpmz3Tz+XszQ=','Elira','Gashi'),
+('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','admin@vleradent.com','admin@vleradent.com','PBKDF2-SHA256$100000$Kvicsrb0fxDSC/9wbOFlKw==$sjaE2LQKBRKIHNlk7KDa0TqA/ztn+abCP6n/oUDa9T0=','Admin','Vlera Dent'),
+('30000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000002','vlorentina.sahiti@vleradent.com','vlorentina.sahiti@vleradent.com','PBKDF2-SHA256$100000$+7QomWt7oXQCq7CFK3sbAA==$GGXME0KqylmWA7/LSjCzRlTxEH5GtsyJpmz3Tz+XszQ=','Vlorentina','Sahiti'),
 ('30000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000002','doctor2','doctor2@quantumcare.test','PBKDF2-SHA256$100000$+7QomWt7oXQCq7CFK3sbAA==$GGXME0KqylmWA7/LSjCzRlTxEH5GtsyJpmz3Tz+XszQ=','Blerim','Hoxha'),
 ('30000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000002','doctor3','doctor3@quantumcare.test','PBKDF2-SHA256$100000$+7QomWt7oXQCq7CFK3sbAA==$GGXME0KqylmWA7/LSjCzRlTxEH5GtsyJpmz3Tz+XszQ=','Diellza','Berisha'),
-('30000000-0000-0000-0000-000000000005','10000000-0000-0000-0000-000000000003','reception1','reception1@quantumcare.test','PBKDF2-SHA256$100000$THzcO2ZpEGQSRy0xhwxxFA==$qc6/idD+2eS+B+5bW5MkrUdY7AVFfHZuWaxeJ72nBbA=','Luan','Shala'),
+('30000000-0000-0000-0000-000000000005','10000000-0000-0000-0000-000000000003','reception@vleradent.com','reception@vleradent.com','PBKDF2-SHA256$100000$THzcO2ZpEGQSRy0xhwxxFA==$qc6/idD+2eS+B+5bW5MkrUdY7AVFfHZuWaxeJ72nBbA=','Reception','Vlera Dent'),
 ('30000000-0000-0000-0000-000000000006','10000000-0000-0000-0000-000000000003','reception2','reception2@quantumcare.test','PBKDF2-SHA256$100000$THzcO2ZpEGQSRy0xhwxxFA==$qc6/idD+2eS+B+5bW5MkrUdY7AVFfHZuWaxeJ72nBbA=','Era','Rugova')
 on conflict (id) do nothing;
 

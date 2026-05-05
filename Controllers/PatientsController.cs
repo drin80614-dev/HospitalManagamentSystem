@@ -58,12 +58,14 @@ public class PatientsController : AppController
     public async Task<IActionResult> Create()
     {
         await LoadPatientLookups();
-        return View(new Patient { RegistrationDate = DateTime.Today, Status = "Active" });
+        return View(new Patient { RegistrationDate = DateTime.Today, Status = "Active", DateOfBirth = DateTime.Today.AddYears(-30), Gender = "Unspecified" });
     }
 
     [HttpPost, Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Receptionist}"), ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Patient patient)
     {
+        NormalizeNewPatient(patient);
+
         if (!ModelState.IsValid)
         {
             await LoadPatientLookups();
@@ -110,5 +112,16 @@ public class PatientsController : AppController
     private async Task LoadPatientLookups()
     {
         ViewBag.Doctors = await _repository.GetDoctorsAsync(true);
+    }
+
+    private static void NormalizeNewPatient(Patient patient)
+    {
+        patient.RegistrationDate = DateTime.Today;
+        patient.Status = "Active";
+        patient.DateOfBirth = patient.DateOfBirth == default ? DateTime.Today.AddYears(-30) : patient.DateOfBirth;
+        patient.Gender = string.IsNullOrWhiteSpace(patient.Gender) ? "Unspecified" : patient.Gender.Trim();
+        patient.PersonalNumber = string.IsNullOrWhiteSpace(patient.PersonalNumber)
+            ? $"AUTO-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}"[..40]
+            : patient.PersonalNumber.Trim();
     }
 }

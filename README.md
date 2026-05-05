@@ -83,9 +83,9 @@ After running the SQL seed:
 
 | Role | Email | Password |
 | --- | --- | --- |
-| Admin | `admin@quantumcare.test` | `Admin123!` |
-| Dentist | `doctor1@quantumcare.test` | `Doctor123!` |
-| Receptionist | `reception1@quantumcare.test` | `Reception123!` |
+| Admin | `admin@vleradent.com` | `Admin123!` |
+| Dentist | `vlorentina.sahiti@vleradent.com` | `Doctor123!` |
+| Receptionist | `reception@vleradent.com` | `Reception123!` |
 
 ## Project Structure
 
