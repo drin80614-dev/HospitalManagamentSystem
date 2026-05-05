@@ -113,7 +113,13 @@
                 <ul class="timeline-list mt-3">
                     @foreach (var payment in Model.PendingPayments.Take(5))
                     {
-                        <li class="timeline-item"><i class="bi bi-credit-card text-danger"></i><div><strong>@payment.PatientName</strong><div class="text-soft">@payment.ServiceName - @payment.Amount.ToString("C")</div></div></li>
+                        <li class="timeline-item">
+                            <i class="bi bi-credit-card text-danger"></i>
+                            <div>
+                                <strong>@payment.PatientName</strong>
+                                <div class="text-soft">@payment.ServiceName - paid @payment.Amount.ToString("C"), remaining @payment.BalanceAmount.ToString("C")</div>
+                            </div>
+                        </li>
                     }
                     @if (!Model.PendingPayments.Any())
                     {

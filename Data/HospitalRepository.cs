@@ -101,6 +101,17 @@ public class HospitalRepository
             add column if not exists total_amount numeric(12,2) not null default 0,
             add column if not exists balance_amount numeric(12,2) not null default 0;
 
+            create table if not exists invoices (
+                id uuid primary key default gen_random_uuid(),
+                payment_id uuid not null unique references payments(id) on delete cascade,
+                invoice_number varchar(40) not null unique default ('INV-' || to_char(now(), 'YYYYMMDD') || '-' || upper(substr(gen_random_uuid()::text, 1, 8))),
+                invoice_date timestamptz not null default now(),
+                total_amount numeric(12,2) not null default 0,
+                status varchar(30) not null default 'Issued',
+                created_at timestamptz not null default now(),
+                updated_at timestamptz not null default now()
+            );
+
             update payments
             set total_amount = case when total_amount <= 0 then amount else total_amount end,
                 balance_amount = greatest((case when total_amount <= 0 then amount else total_amount end) - amount, 0),
@@ -439,7 +450,7 @@ public class HospitalRepository
         var totalServices = await connection.ExecuteScalarAsync<long>("select count(*) from services;");
         var lowStockItems = await connection.ExecuteScalarAsync<long>("select count(*) from medication_inventory where quantity_in_stock <= reorder_level or status = 'Low Stock';");
         var todayAppointments = await connection.ExecuteScalarAsync<long>("select count(*) from appointments where appointment_date = current_date;");
-        var pendingPayments = await connection.ExecuteScalarAsync<long>("select count(*) from payments where status = 'Pending';");
+        var pendingPayments = await connection.ExecuteScalarAsync<long>("select count(*) from payments where status = 'Pending' or balance_amount > 0;");
         var completedVisits = await connection.ExecuteScalarAsync<long>("select count(*) from visits where visit_status = 'Completed';");
 
         var assignedPatientsSql = """
@@ -483,7 +494,7 @@ public class HospitalRepository
             from payments py
             join patients p on p.id = py.patient_id
             join services s on s.id = py.service_id
-            where py.status = 'Pending'
+            where py.status = 'Pending' or py.balance_amount > 0
             order by py.payment_date desc
             limit 6;
             """;
