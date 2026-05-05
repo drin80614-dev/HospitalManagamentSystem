@@ -9,20 +9,32 @@
         <div class="col-md-6"><label asp-for="Appointment.DoctorId" class="form-label">Doctor</label><select asp-for="Appointment.DoctorId" class="form-select"><option value="">Select doctor</option>@foreach (var d in Model.Doctors){<option value="@d.Id">@d.FullName - @d.Specialization</option>}</select></div>
         <div class="col-md-6">
             <label asp-for="ServiceIds" class="form-label">Services / Treatments</label>
-            <div class="list-group service-picker" id="appointmentServices">
+            <div class="input-group">
+                <select class="form-select" id="serviceSelect">
+                    <option value="">Select service</option>
+                    @foreach (var service in Model.Services)
+                    {
+                        <option value="@service.Id" data-name="@service.ServiceName" data-price="@service.Price" data-display-price="@service.Price.ToString("C")">@service.ServiceName - @service.Price.ToString("C")</option>
+                    }
+                </select>
+                <button class="btn btn-outline-primary" type="button" id="addServiceButton"><i class="bi bi-plus-lg me-1"></i>Add</button>
+            </div>
+            <div class="selected-services mt-2" id="selectedServices">
                 @foreach (var service in Model.Services)
                 {
-                    var inputId = $"service_{service.Id:N}";
-                    <label class="list-group-item d-flex gap-3 align-items-start">
-                        <input class="form-check-input mt-1 service-option" type="checkbox" name="ServiceIds" value="@service.Id" id="@inputId" data-name="@service.ServiceName" data-price="@service.Price" checked="@Model.ServiceIds.Contains(service.Id)" />
-                        <span class="flex-grow-1">
-                            <span class="fw-semibold">@service.ServiceName</span>
-                            <span class="d-block text-soft">@service.Price.ToString("C")</span>
-                        </span>
-                    </label>
+                    if (!Model.ServiceIds.Contains(service.Id))
+                    {
+                        continue;
+                    }
+
+                    <div class="alert alert-light border d-flex justify-content-between align-items-center py-2 px-3 mb-2 selected-service" data-service-id="@service.Id">
+                        <input type="hidden" name="ServiceIds" value="@service.Id" />
+                        <span><strong>@service.ServiceName</strong> <span class="text-soft">@service.Price.ToString("C")</span></span>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-service"><i class="bi bi-x-lg"></i></button>
+                    </div>
                 }
             </div>
-            <div class="form-text">Select one or more services for the same appointment.</div>
+            <div class="form-text">Select a service, press Add, and repeat for more services.</div>
             <span asp-validation-for="ServiceIds" class="text-danger"></span>
         </div>
         <div class="col-md-3"><label asp-for="Appointment.AppointmentDate" class="form-label"></label><input asp-for="Appointment.AppointmentDate" type="date" class="form-control" /></div>
@@ -36,17 +48,81 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        const serviceOptions = document.querySelectorAll(".service-option");
+        const serviceSelect = document.getElementById("serviceSelect");
+        const addServiceButton = document.getElementById("addServiceButton");
+        const selectedServices = document.getElementById("selectedServices");
         const reasonInput = document.getElementById("Appointment_Reason");
+
+        const getSelectedIds = () => Array.from(selectedServices.querySelectorAll("input[name='ServiceIds']")).map(input => input.value);
+
         const updateReasonFromServices = () => {
-            const selectedServices = Array.from(serviceOptions)
-                .filter(option => option.checked)
-                .map(option => option.dataset.name)
+            const names = Array.from(selectedServices.querySelectorAll(".selected-service strong"))
+                .map(element => element.textContent.trim())
                 .filter(Boolean);
-            if (selectedServices.length && !reasonInput.value.trim()) {
-                reasonInput.value = selectedServices.join(", ");
+
+            if (names.length && !reasonInput.value.trim()) {
+                reasonInput.value = names.join(", ");
             }
         };
-        serviceOptions.forEach(option => option.addEventListener("change", updateReasonFromServices));
+
+        const syncOptions = () => {
+            const ids = getSelectedIds();
+            Array.from(serviceSelect.options).forEach(option => {
+                option.disabled = option.value !== "" && ids.includes(option.value);
+            });
+            serviceSelect.value = "";
+        };
+
+        const addSelectedService = () => {
+            const option = serviceSelect.options[serviceSelect.selectedIndex];
+            if (!option?.value || getSelectedIds().includes(option.value)) {
+                return;
+            }
+
+            const row = document.createElement("div");
+            row.className = "alert alert-light border d-flex justify-content-between align-items-center py-2 px-3 mb-2 selected-service";
+            row.dataset.serviceId = option.value;
+
+            const hidden = document.createElement("input");
+            hidden.type = "hidden";
+            hidden.name = "ServiceIds";
+            hidden.value = option.value;
+
+            const label = document.createElement("span");
+            const name = document.createElement("strong");
+            name.textContent = option.dataset.name || option.textContent.trim();
+            const price = document.createElement("span");
+            price.className = "text-soft";
+            price.textContent = ` ${option.dataset.displayPrice || option.dataset.price || ""}`;
+            label.append(name, price);
+
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "btn btn-sm btn-outline-danger remove-service";
+            remove.innerHTML = '<i class="bi bi-x-lg"></i>';
+
+            row.append(hidden, label, remove);
+            selectedServices.append(row);
+            updateReasonFromServices();
+            syncOptions();
+        };
+
+        addServiceButton?.addEventListener("click", addSelectedService);
+        serviceSelect?.addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                addSelectedService();
+            }
+        });
+        selectedServices?.addEventListener("click", event => {
+            const button = event.target.closest(".remove-service");
+            if (!button) {
+                return;
+            }
+
+            button.closest(".selected-service")?.remove();
+            syncOptions();
+        });
+        syncOptions();
     </script>
 }
