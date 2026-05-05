@@ -188,6 +188,30 @@ public class HospitalRepository
         return await connection.QueryFirstOrDefaultAsync<AppUser>(sql, new { Login = login.Trim() });
     }
 
+    public async Task<long> GetLiveSyncVersionAsync()
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        return await connection.ExecuteScalarAsync<long>("""
+            select coalesce(floor(extract(epoch from max(changed_at)) * 1000)::bigint, 0)
+            from (
+                select greatest(created_at, updated_at) as changed_at from users
+                union all select greatest(created_at, updated_at) from patients
+                union all select greatest(created_at, updated_at) from doctors
+                union all select greatest(created_at, updated_at) from receptionists
+                union all select greatest(created_at, updated_at) from departments
+                union all select greatest(created_at, updated_at) from services
+                union all select greatest(created_at, updated_at) from appointments
+                union all select greatest(created_at, updated_at) from visits
+                union all select greatest(created_at, updated_at) from prescriptions
+                union all select greatest(created_at, updated_at) from lab_tests
+                union all select greatest(created_at, updated_at) from payments
+                union all select greatest(created_at, updated_at) from invoices
+                union all select greatest(created_at, updated_at) from medication_inventory
+                union all select created_at from audit_logs
+            ) live_changes;
+            """);
+    }
+
     public async Task<AppUser?> GetUserByIdAsync(Guid id)
     {
         const string sql = """

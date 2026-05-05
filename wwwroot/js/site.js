@@ -210,7 +210,7 @@
     });
   });
 
-  document.querySelectorAll("form").forEach((form) => {
+  document.querySelectorAll("form[method='post']").forEach((form) => {
     form.addEventListener("input", () => {
       form.dataset.dirty = "true";
     });
@@ -222,20 +222,7 @@
     });
   });
 
-  const liveRefreshPaths = [
-    /^\/$/i,
-    /^\/Dashboard/i,
-    /^\/Appointments\/?$/i,
-    /^\/Appointments\/Calendar/i,
-    /^\/Patients\/?$/i,
-    /^\/Payments\/?$/i,
-    /^\/Inventory\/?$/i,
-    /^\/LabTests\/?$/i,
-    /^\/Notifications\/?$/i,
-    /^\/Doctor\/MyPatients/i,
-    /^\/Doctor\/MyAppointments/i,
-    /^\/Receptionist\/Patients/i
-  ];
+  const liveRefreshPaths = [/^\/(?!Auth\/|Home\/Error|healthz)/i];
   const editPaths = /\/(Create|Edit|Login|Receipt|Print|Profile|Settings|ForgotPassword|ResetPassword|AccessDenied)/i;
   const isLiveRefreshPage = liveRefreshPaths.some((pattern) => pattern.test(window.location.pathname)) &&
     !editPaths.test(window.location.pathname);
@@ -251,11 +238,54 @@
   if (isLiveRefreshPage && liveRefreshButton) {
     liveRefreshButton.classList.remove("d-none");
     liveRefreshButton.addEventListener("click", () => window.location.reload());
-    setInterval(() => {
-      if (canRefreshNow()) {
-        window.location.reload();
+
+    let liveVersion = null;
+    let pendingLiveUpdate = false;
+
+    const markPendingUpdate = () => {
+      pendingLiveUpdate = true;
+      liveRefreshButton.classList.remove("btn-outline-success");
+      liveRefreshButton.classList.add("btn-success");
+      liveRefreshButton.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>New data';
+    };
+
+    const checkLiveVersion = async () => {
+      try {
+        const response = await fetch("/LiveSync/Version", {
+          cache: "no-store",
+          headers: { "Accept": "application/json" }
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = await response.json();
+        const nextVersion = Number(payload.version || 0);
+        if (!nextVersion) {
+          return;
+        }
+
+        if (liveVersion === null) {
+          liveVersion = nextVersion;
+          return;
+        }
+
+        if (nextVersion > liveVersion) {
+          liveVersion = nextVersion;
+          if (canRefreshNow()) {
+            window.location.reload();
+          } else if (!pendingLiveUpdate) {
+            markPendingUpdate();
+          }
+        }
+      } catch {
+        // Temporary network issues are handled by the next poll.
       }
-    }, 15000);
+    };
+
+    checkLiveVersion();
+    setInterval(checkLiveVersion, 3000);
   }
 
   document.querySelectorAll("a, button[type='submit']").forEach((el) => {
