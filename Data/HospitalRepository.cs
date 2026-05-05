@@ -558,9 +558,13 @@ public class HospitalRepository
             where (@Search is null or
                    p.first_name ilike '%' || @Search || '%' or
                    p.last_name ilike '%' || @Search || '%' or
+                   concat_ws(' ', p.first_name, p.last_name) ilike '%' || @Search || '%' or
+                   concat_ws(' ', p.last_name, p.first_name) ilike '%' || @Search || '%' or
                    p.hospital_number ilike '%' || @Search || '%' or
                    p.personal_number ilike '%' || @Search || '%' or
-                   p.phone ilike '%' || @Search || '%')
+                   p.phone ilike '%' || @Search || '%' or
+                   p.email ilike '%' || @Search || '%' or
+                   (@SearchDigits is not null and regexp_replace(coalesce(p.phone, ''), '[^0-9]', '', 'g') ilike '%' || @SearchDigits || '%'))
               and (@Status is null or p.status = @Status)
               and (@DoctorId::uuid is null or p.assigned_doctor_id = @DoctorId)
               and (@RoomId::uuid is null or p.current_room_id = @RoomId)
@@ -587,6 +591,7 @@ public class HospitalRepository
         var parameters = new
         {
             Search = Clean(search),
+            SearchDigits = DigitsOnly(search),
             Status = Clean(status),
             DoctorId = doctorId,
             RoomId = roomId,
@@ -1559,10 +1564,14 @@ public class HospitalRepository
             left join doctors d on d.id = p.assigned_doctor_id
             left join rooms r on r.id = p.current_room_id
             where p.first_name ilike '%' || @Query || '%' or p.last_name ilike '%' || @Query || '%'
+               or concat_ws(' ', p.first_name, p.last_name) ilike '%' || @Query || '%'
+               or concat_ws(' ', p.last_name, p.first_name) ilike '%' || @Query || '%'
                or p.personal_number ilike '%' || @Query || '%' or p.phone ilike '%' || @Query || '%'
                or p.hospital_number ilike '%' || @Query || '%'
+               or p.email ilike '%' || @Query || '%'
+               or (@QueryDigits is not null and regexp_replace(coalesce(p.phone, ''), '[^0-9]', '', 'g') ilike '%' || @QueryDigits || '%')
             order by p.created_at desc limit 10;
-            """, new { Query = clean });
+            """, new { Query = clean, QueryDigits = DigitsOnly(clean) });
 
         var doctors = await connection.QueryAsync<Doctor>(DoctorSelectSql + """
             where d.first_name ilike '%' || @Query || '%' or d.last_name ilike '%' || @Query || '%'
@@ -1585,6 +1594,7 @@ public class HospitalRepository
             """ + AppointmentServicesSelectSql + """
             where a.appointment_number ilike '%' || @Query || '%'
                or p.first_name ilike '%' || @Query || '%' or p.last_name ilike '%' || @Query || '%'
+               or concat_ws(' ', p.first_name, p.last_name) ilike '%' || @Query || '%'
                or d.first_name ilike '%' || @Query || '%' or d.last_name ilike '%' || @Query || '%'
                or svc.service_names ilike '%' || @Query || '%'
             order by a.appointment_date desc, a.appointment_time desc limit 10;
@@ -1686,6 +1696,17 @@ public class HospitalRepository
     }
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? DigitsOnly(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var digits = new string(value.Where(char.IsDigit).ToArray());
+        return string.IsNullOrWhiteSpace(digits) ? null : digits;
+    }
 
     private const string DoctorSelectSql = """
         select d.*, dep.name as department_name
