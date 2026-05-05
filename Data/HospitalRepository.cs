@@ -444,14 +444,39 @@ public class HospitalRepository
     {
         using var connection = _connectionFactory.CreateConnection();
 
-        var totalPatients = await connection.ExecuteScalarAsync<long>("select count(*) from patients;");
-        var patientsToday = await connection.ExecuteScalarAsync<long>("select count(*) from patients where registration_date = current_date;");
-        var totalDoctors = await connection.ExecuteScalarAsync<long>("select count(*) from doctors where status = 'Active';");
-        var totalServices = await connection.ExecuteScalarAsync<long>("select count(*) from services;");
-        var lowStockItems = await connection.ExecuteScalarAsync<long>("select count(*) from medication_inventory where quantity_in_stock <= reorder_level or status = 'Low Stock';");
-        var todayAppointments = await connection.ExecuteScalarAsync<long>("select count(*) from appointments where appointment_date = current_date;");
-        var pendingPayments = await connection.ExecuteScalarAsync<long>("select count(*) from payments where status = 'Pending' or balance_amount > 0;");
-        var completedVisits = await connection.ExecuteScalarAsync<long>("select count(*) from visits where visit_status = 'Completed';");
+        async Task<long> SafeCountAsync(string sql, object? parameters = null)
+        {
+            try
+            {
+                return await connection.ExecuteScalarAsync<long>(sql, parameters);
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        async Task<IReadOnlyList<T>> SafeQueryAsync<T>(string sql, object? parameters = null)
+        {
+            try
+            {
+                var rows = await connection.QueryAsync<T>(sql, parameters);
+                return rows.AsList();
+            }
+            catch
+            {
+                return Array.Empty<T>();
+            }
+        }
+
+        var totalPatients = await SafeCountAsync("select count(*) from patients;");
+        var patientsToday = await SafeCountAsync("select count(*) from patients where registration_date = current_date;");
+        var totalDoctors = await SafeCountAsync("select count(*) from doctors where status = 'Active';");
+        var totalServices = await SafeCountAsync("select count(*) from services;");
+        var lowStockItems = await SafeCountAsync("select count(*) from medication_inventory where quantity_in_stock <= reorder_level or status = 'Low Stock';");
+        var todayAppointments = await SafeCountAsync("select count(*) from appointments where appointment_date = current_date;");
+        var pendingPayments = await SafeCountAsync("select count(*) from payments where status = 'Pending' or coalesce(balance_amount, 0) > 0;");
+        var completedVisits = await SafeCountAsync("select count(*) from visits where visit_status = 'Completed';");
 
         var assignedPatientsSql = """
             select p.*, concat(d.first_name, ' ', d.last_name) as assigned_doctor_name, r.room_number as current_room_number
@@ -507,12 +532,12 @@ public class HospitalRepository
             limit 8;
             """;
 
-        var recentPatients = await connection.QueryAsync<Patient>(assignedPatientsSql, new { DoctorId = doctorId });
-        var appointments = await connection.QueryAsync<Appointment>(appointmentSql, new { DoctorId = role == AppRoles.Doctor ? doctorId : null });
-        var doctors = await connection.QueryAsync<Doctor>(DoctorSelectSql + " where d.status = 'Active' order by d.first_name limit 8;");
-        var diagnoses = await connection.QueryAsync<Diagnosis>(diagnosesSql, new { DoctorId = role == AppRoles.Doctor ? doctorId : null });
-        var payments = await connection.QueryAsync<Payment>(pendingPaymentsSql);
-        var activity = await connection.QueryAsync<AuditLog>(activitySql);
+        var recentPatients = await SafeQueryAsync<Patient>(assignedPatientsSql, new { DoctorId = doctorId });
+        var appointments = await SafeQueryAsync<Appointment>(appointmentSql, new { DoctorId = role == AppRoles.Doctor ? doctorId : null });
+        var doctors = await SafeQueryAsync<Doctor>(DoctorSelectSql + " where d.status = 'Active' order by d.first_name limit 8;");
+        var diagnoses = await SafeQueryAsync<Diagnosis>(diagnosesSql, new { DoctorId = role == AppRoles.Doctor ? doctorId : null });
+        var payments = await SafeQueryAsync<Payment>(pendingPaymentsSql);
+        var activity = await SafeQueryAsync<AuditLog>(activitySql);
 
         var metrics = new List<DashboardMetric>
         {
@@ -529,10 +554,10 @@ public class HospitalRepository
         if (role == AppRoles.Doctor)
         {
             var assignedCount = doctorId.HasValue
-                ? await connection.ExecuteScalarAsync<long>("select count(*) from patients where assigned_doctor_id = @DoctorId;", new { DoctorId = doctorId })
+                ? await SafeCountAsync("select count(*) from patients where assigned_doctor_id = @DoctorId;", new { DoctorId = doctorId })
                 : 0;
             var pendingVisits = doctorId.HasValue
-                ? await connection.ExecuteScalarAsync<long>("select count(*) from appointments where doctor_id = @DoctorId and status in ('Waiting', 'In Progress');", new { DoctorId = doctorId })
+                ? await SafeCountAsync("select count(*) from appointments where doctor_id = @DoctorId and status in ('Waiting', 'In Progress');", new { DoctorId = doctorId })
                 : 0;
             metrics[0] = new DashboardMetric { Label = "Assigned patients", Value = assignedCount.ToString("N0"), Icon = "bi-person-lines-fill", Accent = "primary", Caption = "Your active panel" };
             metrics[6] = new DashboardMetric { Label = "Pending visits", Value = pendingVisits.ToString("N0"), Icon = "bi-hourglass-split", Accent = "warning", Caption = "Waiting or in progress" };
@@ -543,13 +568,13 @@ public class HospitalRepository
             Role = role,
             UserName = userName,
             Metrics = metrics,
-            RecentPatients = recentPatients.AsList(),
-            TodayAppointments = appointments.AsList(),
-            AvailableDoctors = doctors.AsList(),
+            RecentPatients = recentPatients,
+            TodayAppointments = appointments,
+            AvailableDoctors = doctors,
             AvailableRooms = Array.Empty<Room>(),
-            RecentDiagnoses = diagnoses.AsList(),
-            PendingPayments = payments.AsList(),
-            RecentActivity = activity.AsList()
+            RecentDiagnoses = diagnoses,
+            PendingPayments = payments,
+            RecentActivity = activity
         };
     }
 
@@ -1054,7 +1079,7 @@ public class HospitalRepository
 
     public async Task<AppointmentListViewModel> GetAppointmentsAsync(Guid? doctorId, DateTime? date, string? status)
     {
-        const string sql = """
+        const string multiServiceSql = """
             select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
                    svc.service_name, svc.service_price, svc.service_names, svc.services_total
@@ -1068,17 +1093,32 @@ public class HospitalRepository
             order by a.appointment_date desc, a.appointment_time desc;
             """;
 
+        const string fallbackSql = """
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
+                   concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
+                   s.service_name, s.price as service_price, s.service_name as service_names, s.price as services_total
+            from appointments a
+            join patients p on p.id = a.patient_id
+            join doctors d on d.id = a.doctor_id
+            left join services s on s.id = a.service_id
+            where (@DoctorId::uuid is null or a.doctor_id = @DoctorId)
+              and (@Date::date is null or a.appointment_date = @Date)
+              and (@Status is null or a.status = @Status)
+            order by a.appointment_date desc, a.appointment_time desc;
+            """;
+
         using var connection = _connectionFactory.CreateConnection();
-        var appointments = await connection.QueryAsync<Appointment>(sql, new
+        var parameters = new
         {
             DoctorId = doctorId,
             Date = date?.Date,
             Status = Clean(status)
-        });
+        };
+        var appointments = await QueryAppointmentsWithFallbackAsync(connection, multiServiceSql, fallbackSql, parameters);
 
         return new AppointmentListViewModel
         {
-            Appointments = appointments.AsList(),
+            Appointments = appointments,
             Doctors = await GetDoctorsAsync(true),
             DoctorId = doctorId,
             Date = date,
@@ -1088,7 +1128,7 @@ public class HospitalRepository
 
     public async Task<Appointment?> GetAppointmentAsync(Guid id)
     {
-        const string sql = """
+        const string multiServiceSql = """
             select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
                    svc.service_name, svc.service_price, svc.service_names, svc.services_total
@@ -1099,8 +1139,20 @@ public class HospitalRepository
             where a.id = @Id;
             """;
 
+        const string fallbackSql = """
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
+                   concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
+                   s.service_name, s.price as service_price, s.service_name as service_names, s.price as services_total
+            from appointments a
+            join patients p on p.id = a.patient_id
+            join doctors d on d.id = a.doctor_id
+            left join services s on s.id = a.service_id
+            where a.id = @Id;
+            """;
+
         using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<Appointment>(sql, new { Id = id });
+        var appointments = await QueryAppointmentsWithFallbackAsync(connection, multiServiceSql, fallbackSql, new { Id = id });
+        return appointments.FirstOrDefault();
     }
 
     public async Task<Guid> CreateAppointmentAsync(Appointment appointment, IReadOnlyCollection<Guid> serviceIds, Guid actorUserId)
@@ -1149,11 +1201,15 @@ public class HospitalRepository
         using var transaction = connection.BeginTransaction();
 
         var id = await connection.QuerySingleAsync<Guid>(sql, appointment, transaction);
-        await connection.ExecuteAsync("""
-            insert into appointment_services (appointment_id, service_id)
-            select @AppointmentId, unnest(@ServiceIds::uuid[])
-            on conflict (appointment_id, service_id) do nothing;
-            """, new { AppointmentId = id, ServiceIds = selectedServiceIds }, transaction);
+        var hasAppointmentServices = await connection.ExecuteScalarAsync<bool>("select to_regclass('public.appointment_services') is not null;", transaction: transaction);
+        if (hasAppointmentServices)
+        {
+            await connection.ExecuteAsync("""
+                insert into appointment_services (appointment_id, service_id)
+                select @AppointmentId, unnest(@ServiceIds::uuid[])
+                on conflict (appointment_id, service_id) do nothing;
+                """, new { AppointmentId = id, ServiceIds = selectedServiceIds }, transaction);
+        }
 
         transaction.Commit();
         await AddAuditLogAsync(actorUserId, "appointment created", "appointments", id, appointment.Reason);
@@ -1163,7 +1219,7 @@ public class HospitalRepository
     public async Task<IReadOnlyList<Appointment>> GetAppointmentCalendarAsync(Guid? doctorId, DateTime start, DateTime end)
     {
         using var connection = _connectionFactory.CreateConnection();
-        var appointments = await connection.QueryAsync<Appointment>("""
+        const string multiServiceSql = """
             select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
                    svc.service_name, svc.service_price, svc.service_names, svc.services_total
@@ -1174,8 +1230,22 @@ public class HospitalRepository
             where a.appointment_date between @Start and @End
               and (@DoctorId::uuid is null or a.doctor_id = @DoctorId)
             order by a.appointment_date, a.appointment_time;
-            """, new { DoctorId = doctorId, Start = start.Date, End = end.Date });
-        return appointments.AsList();
+            """;
+
+        const string fallbackSql = """
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
+                   concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
+                   s.service_name, s.price as service_price, s.service_name as service_names, s.price as services_total
+            from appointments a
+            join patients p on p.id = a.patient_id
+            join doctors d on d.id = a.doctor_id
+            left join services s on s.id = a.service_id
+            where a.appointment_date between @Start and @End
+              and (@DoctorId::uuid is null or a.doctor_id = @DoctorId)
+            order by a.appointment_date, a.appointment_time;
+            """;
+
+        return await QueryAppointmentsWithFallbackAsync(connection, multiServiceSql, fallbackSql, new { DoctorId = doctorId, Start = start.Date, End = end.Date });
     }
 
     public async Task UpdateAppointmentStatusAsync(Guid id, string status, Guid actorUserId)
@@ -1743,6 +1813,31 @@ public class HospitalRepository
 
         var digits = new string(value.Where(char.IsDigit).ToArray());
         return string.IsNullOrWhiteSpace(digits) ? null : digits;
+    }
+
+    private static async Task<IReadOnlyList<Appointment>> QueryAppointmentsWithFallbackAsync(
+        System.Data.IDbConnection connection,
+        string multiServiceSql,
+        string fallbackSql,
+        object parameters)
+    {
+        try
+        {
+            var appointments = await connection.QueryAsync<Appointment>(multiServiceSql, parameters);
+            return appointments.AsList();
+        }
+        catch
+        {
+            try
+            {
+                var appointments = await connection.QueryAsync<Appointment>(fallbackSql, parameters);
+                return appointments.AsList();
+            }
+            catch
+            {
+                return Array.Empty<Appointment>();
+            }
+        }
     }
 
     private const string DoctorSelectSql = """

@@ -50,8 +50,15 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var repository = scope.ServiceProvider.GetRequiredService<HospitalRepository>();
-    await repository.EnsureFeatureSchemaAsync();
+    try
+    {
+        var repository = scope.ServiceProvider.GetRequiredService<HospitalRepository>();
+        await repository.EnsureFeatureSchemaAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Startup database feature migration failed. The app will continue running with safe dashboard fallbacks.");
+    }
 }
 
 // Configure the HTTP request pipeline.
