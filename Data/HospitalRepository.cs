@@ -13,6 +13,24 @@ public class HospitalRepository
         _connectionFactory = connectionFactory;
     }
 
+    private const string AppointmentServicesSelectSql = """
+        left join lateral (
+            select string_agg(s.service_name, ', ' order by s.service_name) as service_names,
+                   sum(s.price) as services_total,
+                   min(s.service_name) as service_name,
+                   sum(s.price) as service_price
+            from (
+                select aps.service_id
+                from appointment_services aps
+                where aps.appointment_id = a.id
+                union
+                select a.service_id
+                where a.service_id is not null
+            ) selected_services
+            join services s on s.id = selected_services.service_id
+        ) svc on true
+        """;
+
     public async Task EnsureFeatureSchemaAsync()
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -63,6 +81,21 @@ public class HospitalRepository
 
             alter table appointments
             add column if not exists service_id uuid references services(id) on delete set null;
+
+            create table if not exists appointment_services (
+                appointment_id uuid not null references appointments(id) on delete cascade,
+                service_id uuid not null references services(id) on delete restrict,
+                created_at timestamptz not null default now(),
+                primary key (appointment_id, service_id)
+            );
+
+            create index if not exists idx_appointment_services_service on appointment_services(service_id);
+
+            insert into appointment_services (appointment_id, service_id)
+            select id, service_id
+            from appointments
+            where service_id is not null
+            on conflict (appointment_id, service_id) do nothing;
 
             delete from medication_inventory
             where medication_name in (
@@ -230,6 +263,7 @@ public class HospitalRepository
                 union all select greatest(created_at, updated_at) from departments
                 union all select greatest(created_at, updated_at) from services
                 union all select greatest(created_at, updated_at) from appointments
+                union all select created_at from appointment_services
                 union all select greatest(created_at, updated_at) from visits
                 union all select greatest(created_at, updated_at) from prescriptions
                 union all select greatest(created_at, updated_at) from lab_tests
@@ -399,11 +433,11 @@ public class HospitalRepository
         var appointmentSql = """
             select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
-                   s.service_name, s.price as service_price
+                   svc.service_name, svc.service_price, svc.service_names, svc.services_total
             from appointments a
             join patients p on p.id = a.patient_id
             join doctors d on d.id = a.doctor_id
-            left join services s on s.id = a.service_id
+            """ + AppointmentServicesSelectSql + """
             where a.appointment_date = current_date
               and (@DoctorId::uuid is null or a.doctor_id = @DoctorId)
             order by a.appointment_time
@@ -985,11 +1019,11 @@ public class HospitalRepository
         const string sql = """
             select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
-                   s.service_name, s.price as service_price
+                   svc.service_name, svc.service_price, svc.service_names, svc.services_total
             from appointments a
             join patients p on p.id = a.patient_id
             join doctors d on d.id = a.doctor_id
-            left join services s on s.id = a.service_id
+            """ + AppointmentServicesSelectSql + """
             where (@DoctorId::uuid is null or a.doctor_id = @DoctorId)
               and (@Date::date is null or a.appointment_date = @Date)
               and (@Status is null or a.status = @Status)
@@ -1019,11 +1053,11 @@ public class HospitalRepository
         const string sql = """
             select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
-                   s.service_name, s.price as service_price
+                   svc.service_name, svc.service_price, svc.service_names, svc.services_total
             from appointments a
             join patients p on p.id = a.patient_id
             join doctors d on d.id = a.doctor_id
-            left join services s on s.id = a.service_id
+            """ + AppointmentServicesSelectSql + """
             where a.id = @Id;
             """;
 
@@ -1031,8 +1065,16 @@ public class HospitalRepository
         return await connection.QueryFirstOrDefaultAsync<Appointment>(sql, new { Id = id });
     }
 
-    public async Task<Guid> CreateAppointmentAsync(Appointment appointment, Guid actorUserId)
+    public async Task<Guid> CreateAppointmentAsync(Appointment appointment, IReadOnlyCollection<Guid> serviceIds, Guid actorUserId)
     {
+        var selectedServiceIds = serviceIds.Where(id => id != Guid.Empty).Distinct().ToArray();
+        if (selectedServiceIds.Length == 0)
+        {
+            throw new InvalidOperationException("Select at least one service for the appointment.");
+        }
+
+        appointment.ServiceId = selectedServiceIds[0];
+
         using var connection = _connectionFactory.CreateConnection();
         var conflict = await connection.ExecuteScalarAsync<int>("""
             select count(*)
@@ -1048,13 +1090,34 @@ public class HospitalRepository
             throw new InvalidOperationException("This doctor already has an active appointment at that time.");
         }
 
+        var existingServices = await connection.ExecuteScalarAsync<int>("""
+            select count(*)
+            from services
+            where id = any(@ServiceIds);
+            """, new { ServiceIds = selectedServiceIds });
+
+        if (existingServices != selectedServiceIds.Length)
+        {
+            throw new InvalidOperationException("One or more selected services were not found.");
+        }
+
         const string sql = """
             insert into appointments (patient_id, doctor_id, service_id, appointment_date, appointment_time, reason, status, notes)
             values (@PatientId, @DoctorId, @ServiceId, @AppointmentDate, @AppointmentTime, @Reason, @Status, @Notes)
             returning id;
             """;
 
-        var id = await connection.QuerySingleAsync<Guid>(sql, appointment);
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+
+        var id = await connection.QuerySingleAsync<Guid>(sql, appointment, transaction);
+        await connection.ExecuteAsync("""
+            insert into appointment_services (appointment_id, service_id)
+            select @AppointmentId, unnest(@ServiceIds::uuid[])
+            on conflict (appointment_id, service_id) do nothing;
+            """, new { AppointmentId = id, ServiceIds = selectedServiceIds }, transaction);
+
+        transaction.Commit();
         await AddAuditLogAsync(actorUserId, "appointment created", "appointments", id, appointment.Reason);
         return id;
     }
@@ -1065,11 +1128,11 @@ public class HospitalRepository
         var appointments = await connection.QueryAsync<Appointment>("""
             select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
-                   s.service_name, s.price as service_price
+                   svc.service_name, svc.service_price, svc.service_names, svc.services_total
             from appointments a
             join patients p on p.id = a.patient_id
             join doctors d on d.id = a.doctor_id
-            left join services s on s.id = a.service_id
+            """ + AppointmentServicesSelectSql + """
             where a.appointment_date between @Start and @End
               and (@DoctorId::uuid is null or a.doctor_id = @DoctorId)
             order by a.appointment_date, a.appointment_time;
@@ -1470,15 +1533,15 @@ public class HospitalRepository
         var appointments = await connection.QueryAsync<Appointment>("""
             select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
-                   s.service_name, s.price as service_price
+                   svc.service_name, svc.service_price, svc.service_names, svc.services_total
             from appointments a
             join patients p on p.id = a.patient_id
             join doctors d on d.id = a.doctor_id
-            left join services s on s.id = a.service_id
+            """ + AppointmentServicesSelectSql + """
             where a.appointment_number ilike '%' || @Query || '%'
                or p.first_name ilike '%' || @Query || '%' or p.last_name ilike '%' || @Query || '%'
                or d.first_name ilike '%' || @Query || '%' or d.last_name ilike '%' || @Query || '%'
-               or s.service_name ilike '%' || @Query || '%'
+               or svc.service_names ilike '%' || @Query || '%'
             order by a.appointment_date desc, a.appointment_time desc limit 10;
             """, new { Query = clean });
 

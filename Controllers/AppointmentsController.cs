@@ -56,6 +56,14 @@ public class AppointmentsController : AppController
     [HttpPost, Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Receptionist}"), ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(AppointmentCreateViewModel model)
     {
+        model.ServiceIds = model.ServiceIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        if (!model.ServiceIds.Any())
+        {
+            ModelState.AddModelError(nameof(model.ServiceIds), "Select at least one service.");
+        }
+
+        model.Appointment.ServiceId = model.ServiceIds.FirstOrDefault();
+
         if (!ModelState.IsValid)
         {
             model.Patients = await _repository.GetPatientOptionsAsync();
@@ -66,7 +74,7 @@ public class AppointmentsController : AppController
 
         try
         {
-            await _repository.CreateAppointmentAsync(model.Appointment, CurrentUserId);
+            await _repository.CreateAppointmentAsync(model.Appointment, model.ServiceIds, CurrentUserId);
             return FlashAndRedirect("Appointment created.", "Index", "Appointments");
         }
         catch (InvalidOperationException ex)

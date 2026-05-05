@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using HospitalManagamentSystem.Models;
 
 namespace HospitalManagamentSystem.ViewModels;
@@ -14,6 +15,10 @@ public class AppointmentListViewModel
 public class AppointmentCreateViewModel
 {
     public Appointment Appointment { get; set; } = new();
+
+    [MinLength(1, ErrorMessage = "Select at least one service.")]
+    public List<Guid> ServiceIds { get; set; } = [];
+
     public IReadOnlyList<Patient> Patients { get; set; } = [];
     public IReadOnlyList<Doctor> Doctors { get; set; } = [];
     public IReadOnlyList<ServiceItem> Services { get; set; } = [];

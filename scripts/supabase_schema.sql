@@ -289,6 +289,15 @@ begin
     end if;
 end $$;
 
+create table if not exists appointment_services (
+    appointment_id uuid not null references appointments(id) on delete cascade,
+    service_id uuid not null references services(id) on delete restrict,
+    created_at timestamptz not null default now(),
+    primary key (appointment_id, service_id)
+);
+
+create index if not exists idx_appointment_services_service on appointment_services(service_id);
+
 create table if not exists payments (
     id uuid primary key default gen_random_uuid(),
     patient_id uuid not null references patients(id) on delete cascade,
@@ -492,6 +501,15 @@ insert into appointments (id, patient_id, doctor_id, appointment_date, appointme
 ('a0000000-0000-0000-0000-000000000004','70000000-0000-0000-0000-000000000010','40000000-0000-0000-0000-000000000001',current_date,'13:30','Arrhythmia review','In Progress',''),
 ('a0000000-0000-0000-0000-000000000005','70000000-0000-0000-0000-000000000011','40000000-0000-0000-0000-000000000002',current_date + interval '1 day','09:15','General exam','Scheduled','')
 on conflict (id) do nothing;
+
+insert into appointment_services (appointment_id, service_id) values
+('a0000000-0000-0000-0000-000000000001','90000000-0000-0000-0000-000000000001'),
+('a0000000-0000-0000-0000-000000000001','90000000-0000-0000-0000-000000000002'),
+('a0000000-0000-0000-0000-000000000002','90000000-0000-0000-0000-000000000015'),
+('a0000000-0000-0000-0000-000000000003','90000000-0000-0000-0000-000000000013'),
+('a0000000-0000-0000-0000-000000000004','90000000-0000-0000-0000-000000000003'),
+('a0000000-0000-0000-0000-000000000005','90000000-0000-0000-0000-000000000001')
+on conflict (appointment_id, service_id) do nothing;
 
 insert into visits (id, patient_id, doctor_id, appointment_id, visit_date, symptoms, diagnosis, disease, treatment_plan, notes, follow_up_date, visit_status) values
 ('b0000000-0000-0000-0000-000000000001','70000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','a0000000-0000-0000-0000-000000000001',now() - interval '2 hours','Headache and high BP','Stage 1 hypertension flare','Hypertension','Adjust medication and observe for 24 hours','Stable',current_date + interval '7 days','Completed'),

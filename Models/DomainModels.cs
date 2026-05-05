@@ -245,7 +245,7 @@ public class Appointment : EntityBase
     [Required]
     public Guid DoctorId { get; set; }
 
-    [Required, Display(Name = "Service")]
+    [Display(Name = "Service")]
     public Guid? ServiceId { get; set; }
 
     [DataType(DataType.Date)]
@@ -267,6 +267,8 @@ public class Appointment : EntityBase
     public string? DoctorSpecialization { get; set; }
     public string? ServiceName { get; set; }
     public decimal? ServicePrice { get; set; }
+    public string? ServiceNames { get; set; }
+    public decimal? ServicesTotal { get; set; }
 }
 
 public class Visit : EntityBase

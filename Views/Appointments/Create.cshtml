@@ -8,15 +8,22 @@
         <div class="col-md-6"><label asp-for="Appointment.PatientId" class="form-label">Patient</label><select asp-for="Appointment.PatientId" class="form-select"><option value="">Select patient</option>@foreach (var p in Model.Patients){<option value="@p.Id">@p.FullName - @p.HospitalNumber</option>}</select></div>
         <div class="col-md-6"><label asp-for="Appointment.DoctorId" class="form-label">Doctor</label><select asp-for="Appointment.DoctorId" class="form-select"><option value="">Select doctor</option>@foreach (var d in Model.Doctors){<option value="@d.Id">@d.FullName - @d.Specialization</option>}</select></div>
         <div class="col-md-6">
-            <label asp-for="Appointment.ServiceId" class="form-label">Service / Treatment</label>
-            <select asp-for="Appointment.ServiceId" class="form-select" id="appointmentService">
-                <option value="">Select service</option>
+            <label asp-for="ServiceIds" class="form-label">Services / Treatments</label>
+            <div class="list-group service-picker" id="appointmentServices">
                 @foreach (var service in Model.Services)
                 {
-                    <option value="@service.Id" data-name="@service.ServiceName" data-price="@service.Price">@service.ServiceName - @service.Price.ToString("C")</option>
+                    var inputId = $"service_{service.Id:N}";
+                    <label class="list-group-item d-flex gap-3 align-items-start">
+                        <input class="form-check-input mt-1 service-option" type="checkbox" name="ServiceIds" value="@service.Id" id="@inputId" data-name="@service.ServiceName" data-price="@service.Price" checked="@Model.ServiceIds.Contains(service.Id)" />
+                        <span class="flex-grow-1">
+                            <span class="fw-semibold">@service.ServiceName</span>
+                            <span class="d-block text-soft">@service.Price.ToString("C")</span>
+                        </span>
+                    </label>
                 }
-            </select>
-            <span asp-validation-for="Appointment.ServiceId" class="text-danger"></span>
+            </div>
+            <div class="form-text">Select one or more services for the same appointment.</div>
+            <span asp-validation-for="ServiceIds" class="text-danger"></span>
         </div>
         <div class="col-md-3"><label asp-for="Appointment.AppointmentDate" class="form-label"></label><input asp-for="Appointment.AppointmentDate" type="date" class="form-control" /></div>
         <div class="col-md-3"><label asp-for="Appointment.AppointmentTime" class="form-label"></label><input asp-for="Appointment.AppointmentTime" type="time" class="form-control" /></div>
@@ -29,13 +36,17 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        const serviceSelect = document.getElementById("appointmentService");
+        const serviceOptions = document.querySelectorAll(".service-option");
         const reasonInput = document.getElementById("Appointment_Reason");
-        serviceSelect?.addEventListener("change", () => {
-            const selected = serviceSelect.options[serviceSelect.selectedIndex];
-            if (selected?.dataset.name && !reasonInput.value.trim()) {
-                reasonInput.value = selected.dataset.name;
+        const updateReasonFromServices = () => {
+            const selectedServices = Array.from(serviceOptions)
+                .filter(option => option.checked)
+                .map(option => option.dataset.name)
+                .filter(Boolean);
+            if (selectedServices.length && !reasonInput.value.trim()) {
+                reasonInput.value = selectedServices.join(", ");
             }
-        });
+        };
+        serviceOptions.forEach(option => option.addEventListener("change", updateReasonFromServices));
     </script>
 }

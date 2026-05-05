@@ -63,10 +63,10 @@
                 <td>@item.PatientName</td>
                 <td>@item.DoctorName<br /><span class="text-soft">@item.DoctorSpecialization</span></td>
                 <td>
-                    @(item.ServiceName ?? "-")
-                    @if (item.ServicePrice.HasValue)
+                    @(item.ServiceNames ?? item.ServiceName ?? "-")
+                    @if ((item.ServicesTotal ?? item.ServicePrice).HasValue)
                     {
-                        <br /><span class="text-soft">@item.ServicePrice.Value.ToString("C")</span>
+                        <br /><span class="text-soft">@((item.ServicesTotal ?? item.ServicePrice)!.Value.ToString("C"))</span>
                     }
                 </td>
                 <td>@item.Reason</td>

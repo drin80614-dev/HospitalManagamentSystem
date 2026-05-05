@@ -41,7 +41,7 @@
                 <div class="calendar-event status-@item.Status.Replace(" ", "")">
                     <strong>@item.AppointmentTime.ToString(@"hh\:mm") @item.PatientName</strong>
                     <span>@item.DoctorName</span>
-                    <small>@(item.ServiceName ?? item.Reason)</small>
+                    <small>@(item.ServiceNames ?? item.ServiceName ?? item.Reason)</small>
                 </div>
             }
             @if (!items.Any())
