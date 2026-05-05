@@ -1428,32 +1428,58 @@ public class HospitalRepository
         return paymentId;
     }
 
-    public async Task UpdatePaymentStatusAsync(Guid id, string status, string? notes, Guid actorUserId)
+    public async Task UpdatePaymentBalanceAsync(Guid id, decimal balanceAmount, string status, string? notes, Guid actorUserId)
     {
         if (status is not ("Paid" or "Pending" or "Cancelled"))
         {
             throw new ArgumentOutOfRangeException(nameof(status), "Payment status is not supported.");
         }
 
+        if (balanceAmount < 0)
+        {
+            throw new InvalidOperationException("Remaining balance cannot be negative.");
+        }
+
         using var connection = _connectionFactory.CreateConnection();
         connection.Open();
         using var transaction = connection.BeginTransaction();
 
+        var payment = await connection.QuerySingleOrDefaultAsync<Payment>("""
+            select *
+            from payments
+            where id = @Id
+            for update;
+            """, new { Id = id }, transaction)
+            ?? throw new InvalidOperationException("Payment was not found.");
+
+        if (balanceAmount > payment.TotalAmount)
+        {
+            throw new InvalidOperationException("Remaining balance cannot be higher than the payment total.");
+        }
+
+        var nextPaidAmount = payment.TotalAmount - balanceAmount;
+        var nextStatus = status == "Cancelled" ? "Cancelled" : balanceAmount > 0 ? "Pending" : "Paid";
+
         await connection.ExecuteAsync("""
             update payments
-            set status = @Status, notes = @Notes, updated_at = now()
+            set amount = @Amount,
+                balance_amount = @BalanceAmount,
+                status = @Status,
+                notes = @Notes,
+                updated_at = now()
             where id = @Id;
-            """, new { Id = id, Status = status, Notes = notes }, transaction);
+            """, new { Id = id, Amount = nextPaidAmount, BalanceAmount = balanceAmount, Status = nextStatus, Notes = notes }, transaction);
 
         await connection.ExecuteAsync("""
             update invoices
-            set status = case when @Status = 'Cancelled' then 'Cancelled' else 'Issued' end,
+            set total_amount = @TotalAmount,
+                status = case when @Status = 'Cancelled' then 'Cancelled' else 'Issued' end,
                 updated_at = now()
             where payment_id = @Id;
-            """, new { Id = id, Status = status }, transaction);
+            """, new { Id = id, payment.TotalAmount, Status = nextStatus }, transaction);
 
         transaction.Commit();
-        await AddAuditLogAsync(actorUserId, "payment status updated", "payments", id, status);
+        await AddAuditLogAsync(actorUserId, "payment balance updated", "payments", id, $"Paid {nextPaidAmount:N2}, remaining {balanceAmount:N2}, status {nextStatus}");
     }
 
     public async Task<Invoice?> GetInvoiceByPaymentAsync(Guid paymentId)

@@ -79,32 +79,37 @@ public class PaymentsController : AppController
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(PaymentEditViewModel model)
     {
+        var existingPayment = await _repository.GetPaymentByIdAsync(model.Id);
+        if (existingPayment is null)
+        {
+            return NotFound();
+        }
+
+        model.PatientName = existingPayment.PatientName ?? string.Empty;
+        model.HospitalNumber = existingPayment.HospitalNumber ?? string.Empty;
+        model.ServiceName = existingPayment.ServiceName ?? string.Empty;
+        model.Amount = existingPayment.Amount;
+        model.TotalAmount = existingPayment.TotalAmount;
+        model.PaymentMethod = existingPayment.PaymentMethod;
+        model.PaymentDate = existingPayment.PaymentDate;
+
         if (model.Status is not ("Paid" or "Pending" or "Cancelled"))
         {
             ModelState.AddModelError(nameof(model.Status), "Choose a valid payment status.");
         }
 
+        if (model.BalanceAmount > model.TotalAmount)
+        {
+            ModelState.AddModelError(nameof(model.BalanceAmount), "Remaining balance cannot be higher than the total.");
+        }
+
         if (!ModelState.IsValid)
         {
-            var payment = await _repository.GetPaymentByIdAsync(model.Id);
-            if (payment is null)
-            {
-                return NotFound();
-            }
-
-            model.PatientName = payment.PatientName ?? string.Empty;
-            model.HospitalNumber = payment.HospitalNumber ?? string.Empty;
-            model.ServiceName = payment.ServiceName ?? string.Empty;
-            model.Amount = payment.Amount;
-            model.TotalAmount = payment.TotalAmount;
-            model.BalanceAmount = payment.BalanceAmount;
-            model.PaymentMethod = payment.PaymentMethod;
-            model.PaymentDate = payment.PaymentDate;
             return View(model);
         }
 
-        await _repository.UpdatePaymentStatusAsync(model.Id, model.Status, model.Notes, CurrentUserId);
-        return FlashAndRedirect("Payment status updated.", "Index", "Payments");
+        await _repository.UpdatePaymentBalanceAsync(model.Id, model.BalanceAmount, model.Status, model.Notes, CurrentUserId);
+        return FlashAndRedirect("Payment balance updated.", "Edit", "Payments", new { id = model.Id });
     }
 
     public async Task<IActionResult> Receipt(Guid paymentId)

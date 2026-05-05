@@ -5,7 +5,7 @@
     <div>
         <div class="page-kicker">Billing control</div>
         <h1>Edit payment</h1>
-        <p class="text-soft mb-0">Update payment status after it has been registered.</p>
+        <p class="text-soft mb-0">Update the remaining balance when the patient pays later.</p>
     </div>
     <a class="btn btn-outline-secondary" asp-action="Index"><i class="bi bi-arrow-left me-2"></i>Back to payments</a>
 </div>
@@ -36,8 +36,12 @@
         <div class="col-md-6">
             <div class="mini-stat">
                 <span>Current status</span>
-                <strong><span class="badge-soft status-@Model.Status">@Model.Status</span></strong>
-                <small>Invoice status follows cancellation.</small>
+                <strong>
+                    <span class="badge-soft status-@(Model.Status == "Cancelled" ? "Cancelled" : Model.BalanceAmount > 0 ? "Pending" : "Paid")">
+                        @(Model.Status == "Cancelled" ? "Anuluar" : Model.BalanceAmount > 0 ? "E paguar pjeserisht" : "E paguar e gjitha")
+                    </span>
+                </strong>
+                <small>Status updates automatically from remaining balance.</small>
             </div>
         </div>
     </div>
@@ -47,12 +51,27 @@
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
         <div class="row g-3">
             <div class="col-md-4">
+                <label asp-for="TotalAmount" class="form-label">Totali i pageses</label>
+                <input asp-for="TotalAmount" class="form-control" readonly />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Amount" class="form-label">Shuma e paguar</label>
+                <input asp-for="Amount" class="form-control" readonly />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="BalanceAmount" class="form-label">Shuma e papaguar / mbetur</label>
+                <input asp-for="BalanceAmount" class="form-control" type="number" step="0.01" min="0" max="@Model.TotalAmount" />
+                <span asp-validation-for="BalanceAmount" class="text-danger"></span>
+                <div class="form-text">Kur mbetja behet 0, statusi kalon ne "E paguar e gjitha".</div>
+            </div>
+            <div class="col-md-4">
                 <label asp-for="Status" class="form-label"></label>
                 <select asp-for="Status" class="form-select">
                     <option>Paid</option>
                     <option>Pending</option>
                     <option>Cancelled</option>
                 </select>
+                <div class="form-text">Paid/Pending llogariten nga mbetja; Cancelled perdoret vetem per anulim.</div>
                 <span asp-validation-for="Status" class="text-danger"></span>
             </div>
             <div class="col-md-8">

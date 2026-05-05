@@ -504,6 +504,14 @@ public class Payment : EntityBase
     public string? PatientName { get; set; }
     public string? HospitalNumber { get; set; }
     public string? ServiceName { get; set; }
+
+    public string PaymentStatusLabel => Status == "Cancelled"
+        ? "Anuluar"
+        : BalanceAmount > 0 ? "E paguar pjeserisht" : "E paguar e gjitha";
+
+    public string PaymentStatusCss => Status == "Cancelled"
+        ? "Cancelled"
+        : BalanceAmount > 0 ? "Pending" : "Paid";
 }
 
 public class Invoice : EntityBase

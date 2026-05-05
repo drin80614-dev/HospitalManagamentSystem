@@ -20,7 +20,7 @@
     </div>
     <div class="row mb-4">
         <div class="col-md-6"><strong>Patient</strong><br />@Model.PatientName<br /><span>@Model.HospitalNumber</span></div>
-        <div class="col-md-6"><strong>Payment method</strong><br />@Model.PaymentMethod<br /><span>@Model.Status</span></div>
+        <div class="col-md-6"><strong>Payment method</strong><br />@Model.PaymentMethod<br /><span>@(Model.Status == "Cancelled" ? "Anuluar" : Model.BalanceAmount > 0 ? "E paguar pjeserisht" : "E paguar e gjitha")</span></div>
     </div>
     <table class="table">
         <thead><tr><th>Service</th><th class="text-end">Amount</th></tr></thead>

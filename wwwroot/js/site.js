@@ -80,6 +80,8 @@
       "Paid": "Paguar",
       "Remaining": "Mbetur",
       "Remaining balance": "Shuma e mbetur",
+      "E paguar pjeserisht": "E paguar pjeserisht",
+      "E paguar e gjitha": "E paguar e gjitha",
       "Financial balance": "Bilanci financiar",
       "Total treatments": "Totali i trajtimeve",
       "All billed services": "Te gjitha sherbimet e faturuara",

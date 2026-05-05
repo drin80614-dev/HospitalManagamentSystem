@@ -20,7 +20,7 @@
                 <td class="@(item.BalanceAmount > 0 ? "text-danger fw-bold" : "text-success fw-semibold")">@item.BalanceAmount.ToString("C")</td>
                 <td>@item.PaymentMethod</td>
                 <td>@item.PaymentDate.ToString("dd MMM yyyy HH:mm")</td>
-                <td><span class="badge-soft status-@item.Status">@item.Status</span></td>
+                <td><span class="badge-soft status-@item.PaymentStatusCss">@item.PaymentStatusLabel</span></td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@item.Id">
                         <i class="bi bi-pencil-square me-1"></i>Edit
