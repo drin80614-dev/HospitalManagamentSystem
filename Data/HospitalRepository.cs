@@ -1746,15 +1746,39 @@ public class HospitalRepository
             """, parameters);
 
         var doctors = await connection.QueryAsync<DoctorPerformanceRow>("""
-            select concat(d.first_name, ' ', d.last_name) as doctor_name,
-                   count(distinct v.id)::int as visits_completed,
-                   count(distinct dg.id)::int as diagnoses_created,
-                   count(distinct pr.id)::int as prescriptions_created
-            from doctors d
-            left join visits v on v.doctor_id = d.id and v.visit_date::date between @From and @To
-            left join diagnoses dg on dg.doctor_id = d.id and dg.diagnosis_date between @From and @To
-            left join prescriptions pr on pr.doctor_id = d.id and pr.prescription_date between @From and @To
-            group by d.id, d.first_name, d.last_name
+            select doctor_name,
+                   sum(visits_completed)::int as visits_completed,
+                   sum(diagnoses_created)::int as diagnoses_created,
+                   sum(prescriptions_created)::int as prescriptions_created
+            from (
+                select concat(d.first_name, ' ', d.last_name) as doctor_name,
+                       count(v.id)::int as visits_completed,
+                       0::int as diagnoses_created,
+                       0::int as prescriptions_created
+                from visits v
+                join doctors d on d.id = v.doctor_id
+                where v.visit_date::date between @From and @To
+                group by d.id, d.first_name, d.last_name
+                union all
+                select concat(d.first_name, ' ', d.last_name) as doctor_name,
+                       0::int as visits_completed,
+                       count(dg.id)::int as diagnoses_created,
+                       0::int as prescriptions_created
+                from diagnoses dg
+                join doctors d on d.id = dg.doctor_id
+                where dg.diagnosis_date between @From and @To
+                group by d.id, d.first_name, d.last_name
+                union all
+                select concat(d.first_name, ' ', d.last_name) as doctor_name,
+                       0::int as visits_completed,
+                       0::int as diagnoses_created,
+                       count(pr.id)::int as prescriptions_created
+                from prescriptions pr
+                join doctors d on d.id = pr.doctor_id
+                where pr.prescription_date between @From and @To
+                group by d.id, d.first_name, d.last_name
+            ) activity
+            group by doctor_name
             order by visits_completed desc, diagnoses_created desc;
             """, parameters);
 
