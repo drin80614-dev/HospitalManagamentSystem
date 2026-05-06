@@ -87,6 +87,65 @@ public class AppointmentsController : AppController
         }
     }
 
+    [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Receptionist}")]
+    public async Task<IActionResult> Edit(Guid id)
+    {
+        var appointment = await _repository.GetAppointmentAsync(id);
+        if (appointment is null)
+        {
+            return NotFound();
+        }
+
+        return View(new AppointmentCreateViewModel
+        {
+            Appointment = appointment,
+            ServiceIds = (await _repository.GetAppointmentServiceIdsAsync(id)).ToList(),
+            Patients = await _repository.GetPatientOptionsAsync(),
+            Doctors = await _repository.GetDoctorsAsync(true),
+            Services = await _repository.GetServicesAsync()
+        });
+    }
+
+    [HttpPost, Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Receptionist}"), ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(Guid id, AppointmentCreateViewModel model)
+    {
+        model.Appointment.Id = id;
+        model.ServiceIds = model.ServiceIds.Where(serviceId => serviceId != Guid.Empty).Distinct().ToList();
+        if (!model.ServiceIds.Any())
+        {
+            ModelState.AddModelError(nameof(model.ServiceIds), "Select at least one service.");
+        }
+
+        if (CurrentRole == AppRoles.Receptionist && model.Appointment.Status == "Completed")
+        {
+            ModelState.AddModelError("Appointment.Status", "Receptionist cannot mark an appointment as completed.");
+        }
+
+        model.Appointment.ServiceId = model.ServiceIds.FirstOrDefault();
+
+        if (!ModelState.IsValid)
+        {
+            model.Patients = await _repository.GetPatientOptionsAsync();
+            model.Doctors = await _repository.GetDoctorsAsync(true);
+            model.Services = await _repository.GetServicesAsync();
+            return View(model);
+        }
+
+        try
+        {
+            await _repository.UpdateAppointmentAsync(model.Appointment, model.ServiceIds, CurrentUserId);
+            return FlashAndRedirect("Appointment updated.", "Index", "Appointments");
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            model.Patients = await _repository.GetPatientOptionsAsync();
+            model.Doctors = await _repository.GetDoctorsAsync(true);
+            model.Services = await _repository.GetServicesAsync();
+            return View(model);
+        }
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Status(Guid id, string status)
     {

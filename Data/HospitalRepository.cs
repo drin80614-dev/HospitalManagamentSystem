@@ -1175,6 +1175,30 @@ public class HospitalRepository
         return appointments.FirstOrDefault();
     }
 
+    public async Task<IReadOnlyList<Guid>> GetAppointmentServiceIdsAsync(Guid appointmentId)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        var hasAppointmentServices = await connection.ExecuteScalarAsync<bool>("select to_regclass('public.appointment_services') is not null;");
+        if (hasAppointmentServices)
+        {
+            var serviceIds = await connection.QueryAsync<Guid>("""
+                select service_id
+                from appointment_services
+                where appointment_id = @AppointmentId
+                order by created_at;
+                """, new { AppointmentId = appointmentId });
+
+            var selected = serviceIds.AsList();
+            if (selected.Count > 0)
+            {
+                return selected;
+            }
+        }
+
+        var fallbackServiceId = await connection.ExecuteScalarAsync<Guid?>("select service_id from appointments where id = @AppointmentId;", new { AppointmentId = appointmentId });
+        return fallbackServiceId.HasValue ? [fallbackServiceId.Value] : [];
+    }
+
     public async Task<Guid> CreateAppointmentAsync(Appointment appointment, IReadOnlyCollection<Guid> serviceIds, Guid actorUserId)
     {
         var selectedServiceIds = serviceIds.Where(id => id != Guid.Empty).Distinct().ToArray();
@@ -1234,6 +1258,75 @@ public class HospitalRepository
         transaction.Commit();
         await AddAuditLogAsync(actorUserId, "appointment created", "appointments", id, appointment.Reason);
         return id;
+    }
+
+    public async Task UpdateAppointmentAsync(Appointment appointment, IReadOnlyCollection<Guid> serviceIds, Guid actorUserId)
+    {
+        var selectedServiceIds = serviceIds.Where(id => id != Guid.Empty).Distinct().ToArray();
+        if (selectedServiceIds.Length == 0)
+        {
+            throw new InvalidOperationException("Select at least one service for the appointment.");
+        }
+
+        appointment.ServiceId = selectedServiceIds[0];
+
+        using var connection = _connectionFactory.CreateConnection();
+        var conflict = await connection.ExecuteScalarAsync<int>("""
+            select count(*)
+            from appointments
+            where id <> @Id
+              and doctor_id = @DoctorId
+              and appointment_date = @AppointmentDate
+              and appointment_time = @AppointmentTime
+              and status <> 'Cancelled';
+            """, appointment);
+
+        if (conflict > 0)
+        {
+            throw new InvalidOperationException("This doctor already has an active appointment at that time.");
+        }
+
+        var existingServices = await connection.ExecuteScalarAsync<int>("""
+            select count(*)
+            from services
+            where id = any(@ServiceIds);
+            """, new { ServiceIds = selectedServiceIds });
+
+        if (existingServices != selectedServiceIds.Length)
+        {
+            throw new InvalidOperationException("One or more selected services were not found.");
+        }
+
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+
+        await connection.ExecuteAsync("""
+            update appointments
+            set patient_id = @PatientId,
+                doctor_id = @DoctorId,
+                service_id = @ServiceId,
+                appointment_date = @AppointmentDate,
+                appointment_time = @AppointmentTime,
+                reason = @Reason,
+                status = @Status,
+                notes = @Notes,
+                updated_at = now()
+            where id = @Id;
+            """, appointment, transaction);
+
+        var hasAppointmentServices = await connection.ExecuteScalarAsync<bool>("select to_regclass('public.appointment_services') is not null;", transaction: transaction);
+        if (hasAppointmentServices)
+        {
+            await connection.ExecuteAsync("delete from appointment_services where appointment_id = @AppointmentId;", new { AppointmentId = appointment.Id }, transaction);
+            await connection.ExecuteAsync("""
+                insert into appointment_services (appointment_id, service_id)
+                select @AppointmentId, unnest(@ServiceIds::uuid[])
+                on conflict (appointment_id, service_id) do nothing;
+                """, new { AppointmentId = appointment.Id, ServiceIds = selectedServiceIds }, transaction);
+        }
+
+        transaction.Commit();
+        await AddAuditLogAsync(actorUserId, "appointment edited", "appointments", appointment.Id, $"{appointment.AppointmentDate:yyyy-MM-dd} {appointment.AppointmentTime:hh\\:mm}");
     }
 
     public async Task<IReadOnlyList<Appointment>> GetAppointmentCalendarAsync(Guid? doctorId, DateTime start, DateTime end)

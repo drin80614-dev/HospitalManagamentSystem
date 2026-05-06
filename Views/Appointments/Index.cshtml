@@ -72,6 +72,13 @@
                 <td>@item.Reason</td>
                 <td><span class="badge-soft status-@item.Status.Replace(" ", "")">@item.Status</span></td>
                 <td class="text-end">
+                    <div class="d-flex gap-2 justify-content-end">
+                        @if (User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.Receptionist))
+                        {
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                        }
                     <form method="post" asp-action="Status" class="d-flex gap-2 justify-content-end">
                         <input type="hidden" name="id" value="@item.Id" />
                         <select class="form-select form-select-sm" name="status" style="max-width:160px">
@@ -82,6 +89,7 @@
                         </select>
                         <button class="btn btn-sm btn-outline-primary"><i class="bi bi-check2"></i></button>
                     </form>
+                    </div>
                 </td>
             </tr>
         }
