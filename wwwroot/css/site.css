@@ -463,6 +463,18 @@ a {
   border-radius: 8px;
 }
 
+.reminder-card {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid var(--hms-border);
+  border-radius: 8px;
+}
+
+.reminder-card:hover {
+  border-color: rgba(7, 151, 210, 0.34);
+  box-shadow: 0 16px 36px rgba(23, 32, 51, 0.08);
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(150px, 1fr));

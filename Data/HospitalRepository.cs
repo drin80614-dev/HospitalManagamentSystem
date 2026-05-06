@@ -475,6 +475,7 @@ public class HospitalRepository
         var totalServices = await SafeCountAsync("select count(*) from services;");
         var lowStockItems = await SafeCountAsync("select count(*) from medication_inventory where quantity_in_stock <= reorder_level or status = 'Low Stock';");
         var todayAppointments = await SafeCountAsync("select count(*) from appointments where appointment_date = current_date;");
+        var tomorrowAppointments = await SafeCountAsync("select count(*) from appointments where appointment_date = current_date + 1;");
         var pendingPayments = await SafeCountAsync("select count(*) from payments where status = 'Pending' or coalesce(balance_amount, 0) > 0;");
         var completedVisits = await SafeCountAsync("select count(*) from visits where visit_status = 'Completed';");
 
@@ -500,6 +501,22 @@ public class HospitalRepository
               and (@DoctorId::uuid is null or a.doctor_id = @DoctorId)
             order by a.appointment_time
             limit 8;
+            """;
+
+        var remindersSql = """
+            select a.id, a.appointment_number, a.appointment_date, a.appointment_time,
+                   concat(p.first_name, ' ', p.last_name) as patient_name,
+                   concat(d.first_name, ' ', d.last_name) as doctor_name,
+                   a.status, a.reason, svc.service_names
+            from appointments a
+            join patients p on p.id = a.patient_id
+            join doctors d on d.id = a.doctor_id
+            """ + AppointmentServicesSelectSql + """
+            where a.appointment_date between current_date and current_date + 1
+              and a.status not in ('Completed', 'Cancelled')
+              and (@DoctorId::uuid is null or a.doctor_id = @DoctorId)
+            order by a.appointment_date, a.appointment_time
+            limit 10;
             """;
 
         var diagnosesSql = """
@@ -534,6 +551,7 @@ public class HospitalRepository
 
         var recentPatients = await SafeQueryAsync<Patient>(assignedPatientsSql, new { DoctorId = doctorId });
         var appointments = await SafeQueryAsync<Appointment>(appointmentSql, new { DoctorId = role == AppRoles.Doctor ? doctorId : null });
+        var reminders = await SafeQueryAsync<AppointmentReminderItem>(remindersSql, new { DoctorId = role == AppRoles.Doctor ? doctorId : null });
         var doctors = await SafeQueryAsync<Doctor>(DoctorSelectSql + " where d.status = 'Active' order by d.first_name limit 8;");
         var diagnoses = await SafeQueryAsync<Diagnosis>(diagnosesSql, new { DoctorId = role == AppRoles.Doctor ? doctorId : null });
         var payments = await SafeQueryAsync<Payment>(pendingPaymentsSql);
@@ -547,6 +565,7 @@ public class HospitalRepository
             new() { Label = "Dental services", Value = totalServices.ToString("N0"), Icon = "bi-stars", Accent = "success", Caption = "Treatment catalog" },
             new() { Label = "Low stock items", Value = lowStockItems.ToString("N0"), Icon = "bi-box-seam", Accent = "warning", Caption = "Inventory attention" },
             new() { Label = "Today appointments", Value = todayAppointments.ToString("N0"), Icon = "bi-calendar2-check", Accent = "primary", Caption = "Scheduled for today" },
+            new() { Label = "Tomorrow reminders", Value = tomorrowAppointments.ToString("N0"), Icon = "bi-bell", Accent = "warning", Caption = "Upcoming appointments" },
             new() { Label = "Pending payments", Value = pendingPayments.ToString("N0"), Icon = "bi-credit-card", Accent = "danger", Caption = "Needs billing follow-up" },
             new() { Label = "Completed visits", Value = completedVisits.ToString("N0"), Icon = "bi-check2-circle", Accent = "success", Caption = "Closed clinical work" }
         };
@@ -560,7 +579,7 @@ public class HospitalRepository
                 ? await SafeCountAsync("select count(*) from appointments where doctor_id = @DoctorId and status in ('Waiting', 'In Progress');", new { DoctorId = doctorId })
                 : 0;
             metrics[0] = new DashboardMetric { Label = "Assigned patients", Value = assignedCount.ToString("N0"), Icon = "bi-person-lines-fill", Accent = "primary", Caption = "Your active panel" };
-            metrics[6] = new DashboardMetric { Label = "Pending visits", Value = pendingVisits.ToString("N0"), Icon = "bi-hourglass-split", Accent = "warning", Caption = "Waiting or in progress" };
+            metrics[7] = new DashboardMetric { Label = "Pending visits", Value = pendingVisits.ToString("N0"), Icon = "bi-hourglass-split", Accent = "warning", Caption = "Waiting or in progress" };
         }
 
         return new DashboardViewModel
@@ -574,7 +593,8 @@ public class HospitalRepository
             AvailableRooms = Array.Empty<Room>(),
             RecentDiagnoses = diagnoses,
             PendingPayments = payments,
-            RecentActivity = activity
+            RecentActivity = activity,
+            AppointmentReminders = reminders
         };
     }
 

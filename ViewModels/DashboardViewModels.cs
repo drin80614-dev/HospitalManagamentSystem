@@ -14,6 +14,7 @@ public class DashboardViewModel
     public IReadOnlyList<Diagnosis> RecentDiagnoses { get; set; } = [];
     public IReadOnlyList<Payment> PendingPayments { get; set; } = [];
     public IReadOnlyList<AuditLog> RecentActivity { get; set; } = [];
+    public IReadOnlyList<AppointmentReminderItem> AppointmentReminders { get; set; } = [];
 }
 
 public class DashboardMetric
@@ -23,4 +24,19 @@ public class DashboardMetric
     public string Icon { get; set; } = "bi-activity";
     public string Accent { get; set; } = "primary";
     public string Caption { get; set; } = string.Empty;
+}
+
+public class AppointmentReminderItem
+{
+    public Guid Id { get; set; }
+    public string AppointmentNumber { get; set; } = string.Empty;
+    public DateTime AppointmentDate { get; set; }
+    public TimeSpan AppointmentTime { get; set; }
+    public string PatientName { get; set; } = string.Empty;
+    public string DoctorName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public string? ServiceNames { get; set; }
+    public string ReminderLabel => AppointmentDate.Date == DateTime.Today ? "Today" : "Tomorrow";
+    public string ReminderCss => AppointmentDate.Date == DateTime.Today ? "Waiting" : "Scheduled";
 }
