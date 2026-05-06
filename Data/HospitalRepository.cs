@@ -1481,8 +1481,9 @@ public class HospitalRepository
                        a.patient_id,
                        a.doctor_id,
                        (a.appointment_date + a.appointment_time) as visit_date,
-                       coalesce(nullif(a.reason, ''), 'Termin i planifikuar') as symptoms,
-                       'Termin i planifikuar' as diagnosis,
+                       coalesce(nullif(a.reason, ''), nullif(svc.service_names, ''), 'Termin i planifikuar') as symptoms,
+                       coalesce(nullif(svc.service_names, ''), nullif(a.reason, ''), 'Trajtim dentar') as diagnosis,
+                       coalesce(nullif(svc.service_names, ''), nullif(a.reason, ''), 'Trajtim dentar') as disease,
                        coalesce(nullif(svc.service_names, ''), nullif(a.reason, ''), 'Trajtim dentar') as treatment_plan,
                        a.notes,
                        coalesce(@Status, a.status, 'Scheduled') as visit_status
@@ -1508,6 +1509,7 @@ public class HospitalRepository
                     visit_date = ac.visit_date,
                     symptoms = ac.symptoms,
                     diagnosis = ac.diagnosis,
+                    disease = ac.disease,
                     treatment_plan = ac.treatment_plan,
                     notes = ac.notes,
                     visit_status = ac.visit_status,
@@ -1516,8 +1518,8 @@ public class HospitalRepository
                 where v.appointment_id = ac.id
                 returning v.id
             )
-            insert into visits (patient_id, doctor_id, appointment_id, visit_date, symptoms, diagnosis, treatment_plan, notes, visit_status)
-            select ac.patient_id, ac.doctor_id, ac.id, ac.visit_date, ac.symptoms, ac.diagnosis, ac.treatment_plan, ac.notes, ac.visit_status
+            insert into visits (patient_id, doctor_id, appointment_id, visit_date, symptoms, diagnosis, disease, treatment_plan, notes, visit_status)
+            select ac.patient_id, ac.doctor_id, ac.id, ac.visit_date, ac.symptoms, ac.diagnosis, ac.disease, ac.treatment_plan, ac.notes, ac.visit_status
             from appointment_context ac
             where not exists (select 1 from updated);
             """, new { AppointmentId = appointmentId, Status = status }, transaction);
