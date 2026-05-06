@@ -28,6 +28,20 @@ public class ReportsController : Controller
 
         switch ((type ?? "payments").ToLowerInvariant())
         {
+            case "monthly":
+                csv.AppendLine("Month,New Patients,Appointments,Completed,Total Billed,Total Paid,Remaining");
+                foreach (var row in reports.MonthlyClinic)
+                {
+                    csv.AppendLine($"{row.Month:yyyy-MM},{row.NewPatients},{row.AppointmentCount},{row.CompletedAppointments},{row.TotalBilled},{row.TotalPaid},{row.RemainingBalance}");
+                }
+                break;
+            case "services":
+                csv.AppendLine("Service,Payments,Total Billed,Total Paid,Remaining");
+                foreach (var row in reports.ServicePerformance)
+                {
+                    csv.AppendLine($"\"{row.ServiceName}\",{row.PaymentCount},{row.TotalBilled},{row.TotalPaid},{row.RemainingBalance}");
+                }
+                break;
             case "patients":
                 csv.AppendLine("Date,Registered,Admitted,Discharged");
                 foreach (var row in reports.DailyPatients)

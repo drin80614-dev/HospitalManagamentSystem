@@ -1804,6 +1804,62 @@ public class HospitalRepository
             order by appointment_date desc;
             """, parameters);
 
+        var monthlyClinic = await connection.QueryAsync<MonthlyClinicReportRow>("""
+            with months as (
+                select generate_series(date_trunc('month', @From::date), date_trunc('month', @To::date), interval '1 month')::date as month
+            ),
+            patient_counts as (
+                select date_trunc('month', registration_date)::date as month,
+                       count(*)::int as new_patients
+                from patients
+                where registration_date between @From and @To
+                group by date_trunc('month', registration_date)
+            ),
+            appointment_counts as (
+                select date_trunc('month', appointment_date)::date as month,
+                       count(*)::int as appointment_count,
+                       count(*) filter (where status = 'Completed')::int as completed_appointments
+                from appointments
+                where appointment_date between @From and @To
+                group by date_trunc('month', appointment_date)
+            ),
+            payment_totals as (
+                select date_trunc('month', payment_date)::date as month,
+                       coalesce(sum(total_amount), 0) as total_billed,
+                       coalesce(sum(amount), 0) as total_paid,
+                       coalesce(sum(balance_amount), 0) as remaining_balance
+                from payments
+                where payment_date::date between @From and @To
+                group by date_trunc('month', payment_date)
+            )
+            select m.month,
+                   coalesce(pc.new_patients, 0) as new_patients,
+                   coalesce(ac.appointment_count, 0) as appointment_count,
+                   coalesce(ac.completed_appointments, 0) as completed_appointments,
+                   coalesce(pt.total_billed, 0) as total_billed,
+                   coalesce(pt.total_paid, 0) as total_paid,
+                   coalesce(pt.remaining_balance, 0) as remaining_balance
+            from months m
+            left join patient_counts pc on pc.month = m.month
+            left join appointment_counts ac on ac.month = m.month
+            left join payment_totals pt on pt.month = m.month
+            order by m.month desc;
+            """, parameters);
+
+        var servicePerformance = await connection.QueryAsync<ServicePerformanceReportRow>("""
+            select s.service_name,
+                   count(py.id)::int as payment_count,
+                   coalesce(sum(py.total_amount), 0) as total_billed,
+                   coalesce(sum(py.amount), 0) as total_paid,
+                   coalesce(sum(py.balance_amount), 0) as remaining_balance
+            from payments py
+            join services s on s.id = py.service_id
+            where py.payment_date::date between @From and @To
+            group by s.id, s.service_name
+            order by total_billed desc, payment_count desc, s.service_name
+            limit 12;
+            """, parameters);
+
         return new ReportsViewModel
         {
             From = from,
@@ -1813,7 +1869,9 @@ public class HospitalRepository
             DoctorPerformance = doctors.AsList(),
             RoomOccupancy = rooms.AsList(),
             Diagnoses = diagnoses.AsList(),
-            Appointments = appointments.AsList()
+            Appointments = appointments.AsList(),
+            MonthlyClinic = monthlyClinic.AsList(),
+            ServicePerformance = servicePerformance.AsList()
         };
     }
 

@@ -1,0 +1,87 @@
+@model PatientDetailsViewModel
+@{
+    ViewData["Title"] = $"Treatment Plan - {Model.Patient.FullName}";
+    string Money(decimal value) => $"{value:N2} EUR";
+    var totalBilled = Model.Payments.Sum(p => p.TotalAmount);
+    var totalPaid = Model.Payments.Sum(p => p.Amount);
+    var totalRemaining = Model.Payments.Sum(p => p.BalanceAmount);
+}
+
+<div class="page-heading no-print">
+    <div><div class="page-kicker">Printable patient document</div><h1>Treatment plan</h1></div>
+    <div class="quick-actions">
+        <a class="btn btn-outline-secondary" asp-action="Details" asp-route-id="@Model.Patient.Id"><i class="bi bi-arrow-left me-2"></i>Back</a>
+        <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print plan</button>
+    </div>
+</div>
+
+<div class="print-surface">
+    <div class="print-document-header">
+        <div class="d-flex align-items-center gap-3">
+            <img class="print-logo" src="~/img/vlera-dent-logo.svg" alt="Vlera Dent" />
+            <div>
+                <h2 class="fw-bold mb-1">Vlera Dent</h2>
+                <p class="mb-0 text-soft">Dental treatment plan</p>
+            </div>
+        </div>
+        <div class="text-end">
+            <div class="fw-bold">@Model.Patient.FullName</div>
+            <div class="text-soft">@Model.Patient.HospitalNumber</div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6"><div class="print-info"><span>Patient</span><strong>@Model.Patient.FullName</strong></div></div>
+        <div class="col-md-6"><div class="print-info"><span>Dentist</span><strong>@Model.Patient.AssignedDoctorName</strong></div></div>
+        <div class="col-md-6"><div class="print-info"><span>Phone</span><strong>@Model.Patient.Phone</strong></div></div>
+        <div class="col-md-6"><div class="print-info"><span>Date</span><strong>@DateTime.Today.ToString("dd MMM yyyy")</strong></div></div>
+    </div>
+
+    <h5 class="fw-bold">Treatment phases</h5>
+    <table class="table mb-4">
+        <thead><tr><th>Date</th><th>Diagnosis</th><th>Plan</th><th>Follow-up</th><th>Status</th></tr></thead>
+        <tbody>
+        @foreach (var visit in Model.Visits.OrderByDescending(v => v.VisitDate))
+        {
+            <tr>
+                <td>@visit.VisitDate.ToString("dd MMM yyyy")</td>
+                <td>@visit.Diagnosis</td>
+                <td>@visit.TreatmentPlan</td>
+                <td>@(visit.FollowUpDate?.ToString("dd MMM yyyy") ?? "-")</td>
+                <td>@visit.VisitStatus</td>
+            </tr>
+        }
+        @if (!Model.Visits.Any()) { <tr><td colspan="5" class="text-center text-soft py-4">No treatment plan records yet.</td></tr> }
+        </tbody>
+    </table>
+
+    <h5 class="fw-bold">Payment overview</h5>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="report-stat"><span>Total plan</span><strong>@Money(totalBilled)</strong></div></div>
+        <div class="col-md-4"><div class="report-stat"><span>Paid</span><strong>@Money(totalPaid)</strong></div></div>
+        <div class="col-md-4"><div class="report-stat"><span>Remaining</span><strong>@Money(totalRemaining)</strong></div></div>
+    </div>
+
+    <table class="table">
+        <thead><tr><th>Service</th><th>Date</th><th>Total</th><th>Paid</th><th>Remaining</th><th>Status</th></tr></thead>
+        <tbody>
+        @foreach (var payment in Model.Payments)
+        {
+            <tr>
+                <td>@payment.ServiceName</td>
+                <td>@payment.PaymentDate.ToString("dd MMM yyyy")</td>
+                <td>@Money(payment.TotalAmount)</td>
+                <td>@Money(payment.Amount)</td>
+                <td>@Money(payment.BalanceAmount)</td>
+                <td>@payment.PaymentStatusLabel</td>
+            </tr>
+        }
+        @if (!Model.Payments.Any()) { <tr><td colspan="6" class="text-center text-soft py-4">No payments yet.</td></tr> }
+        </tbody>
+    </table>
+
+    <div class="print-signature-row">
+        <div>Patient confirmation</div>
+        <div>Dentist signature</div>
+    </div>
+</div>

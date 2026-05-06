@@ -21,6 +21,14 @@ public class ReportsViewModel
     public IReadOnlyList<RoomOccupancyRow> RoomOccupancy { get; set; } = [];
     public IReadOnlyList<DiagnosisReportRow> Diagnoses { get; set; } = [];
     public IReadOnlyList<AppointmentReportRow> Appointments { get; set; } = [];
+    public IReadOnlyList<MonthlyClinicReportRow> MonthlyClinic { get; set; } = [];
+    public IReadOnlyList<ServicePerformanceReportRow> ServicePerformance { get; set; } = [];
+
+    public int TotalPatients => DailyPatients.Sum(row => row.RegisteredPatients);
+    public int TotalAppointments => Appointments.Sum(row => row.AppointmentCount);
+    public decimal TotalBilled => Payments.Sum(row => row.TotalAmount);
+    public decimal TotalPaid => Payments.Sum(row => row.PaidAmount);
+    public decimal TotalRemaining => Payments.Sum(row => row.BalanceAmount);
 }
 
 public class InventoryViewModel
@@ -84,4 +92,24 @@ public class AppointmentReportRow
     public DateTime AppointmentDate { get; set; }
     public string Status { get; set; } = string.Empty;
     public int AppointmentCount { get; set; }
+}
+
+public class MonthlyClinicReportRow
+{
+    public DateTime Month { get; set; }
+    public int NewPatients { get; set; }
+    public int AppointmentCount { get; set; }
+    public int CompletedAppointments { get; set; }
+    public decimal TotalBilled { get; set; }
+    public decimal TotalPaid { get; set; }
+    public decimal RemainingBalance { get; set; }
+}
+
+public class ServicePerformanceReportRow
+{
+    public string ServiceName { get; set; } = string.Empty;
+    public int PaymentCount { get; set; }
+    public decimal TotalBilled { get; set; }
+    public decimal TotalPaid { get; set; }
+    public decimal RemainingBalance { get; set; }
 }

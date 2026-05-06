@@ -521,6 +521,110 @@ a {
   box-shadow: var(--hms-shadow);
 }
 
+.report-print-surface {
+  max-width: 1180px;
+}
+
+.print-document-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 22px;
+  align-items: flex-start;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid rgba(7, 151, 210, 0.18);
+}
+
+.print-logo {
+  width: 96px;
+  height: 72px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid rgba(36, 94, 137, 0.12);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.print-info,
+.report-stat,
+.print-box {
+  padding: 16px;
+  background: #f8fcff;
+  border: 1px solid rgba(36, 94, 137, 0.14);
+  border-radius: 8px;
+}
+
+.print-info span,
+.report-stat span,
+.print-total-box span {
+  display: block;
+  color: #667085;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.print-info strong,
+.report-stat strong,
+.print-total-box strong {
+  display: block;
+  margin-top: 4px;
+  color: #172033;
+  font-size: 1.05rem;
+}
+
+.print-info small {
+  display: block;
+  color: #667085;
+}
+
+.report-stat strong {
+  font-size: 1.35rem;
+}
+
+.print-table thead th {
+  color: #172033;
+  background: #eef8ff;
+}
+
+.print-total-box {
+  width: min(360px, 100%);
+  margin-left: auto;
+  display: grid;
+  gap: 10px;
+}
+
+.print-total-box > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(36, 94, 137, 0.14);
+}
+
+.print-total-box .remaining {
+  padding: 14px;
+  color: #172033;
+  background: #eef8ff;
+  border: 1px solid rgba(7, 151, 210, 0.18);
+  border-radius: 8px;
+}
+
+.print-signature-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 36px;
+  margin-top: 70px;
+}
+
+.print-signature-row > div {
+  flex: 1;
+  padding-top: 12px;
+  color: #667085;
+  text-align: center;
+  border-top: 1px solid #172033;
+}
+
 .empty-state {
   padding: 42px;
   text-align: center;
@@ -594,5 +698,19 @@ a {
     box-shadow: none;
     border: 0;
     max-width: none;
+    padding: 18px;
+  }
+
+  .print-document-header,
+  .print-signature-row {
+    break-inside: avoid;
+  }
+
+  .table-shell,
+  .report-stat,
+  .print-info,
+  .print-box {
+    box-shadow: none !important;
+    break-inside: avoid;
   }
 }

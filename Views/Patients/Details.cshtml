@@ -10,7 +10,8 @@
         <p class="text-soft mb-0">@Model.Patient.Gender, @Model.Patient.Age years - @Model.Patient.PersonalNumber</p>
     </div>
     <div class="quick-actions no-print">
-        <button class="btn btn-outline-primary" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print profile</button>
+        <a class="btn btn-outline-primary" asp-action="PrintProfile" asp-route-id="@Model.Patient.Id"><i class="bi bi-printer me-2"></i>Print profile</a>
+        <a class="btn btn-outline-primary" asp-action="TreatmentPlan" asp-route-id="@Model.Patient.Id"><i class="bi bi-clipboard2-pulse me-2"></i>Treatment plan</a>
         @if (User.IsInRole(AppRoles.Doctor))
         {
             <a class="btn btn-primary" asp-controller="Visits" asp-action="Create" asp-route-patientId="@Model.Patient.Id"><i class="bi bi-journal-medical me-2"></i>Visit</a>

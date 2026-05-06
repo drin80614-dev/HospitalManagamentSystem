@@ -54,6 +54,18 @@ public class PatientsController : AppController
         return View(model);
     }
 
+    public async Task<IActionResult> PrintProfile(Guid id)
+    {
+        var model = await GetAllowedPatientDetailsAsync(id);
+        return model is null ? NotFound() : View(model);
+    }
+
+    public async Task<IActionResult> TreatmentPlan(Guid id)
+    {
+        var model = await GetAllowedPatientDetailsAsync(id);
+        return model is null ? NotFound() : View(model);
+    }
+
     [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Receptionist}")]
     public async Task<IActionResult> Create()
     {
@@ -112,6 +124,22 @@ public class PatientsController : AppController
     private async Task LoadPatientLookups()
     {
         ViewBag.Doctors = await _repository.GetDoctorsAsync(true);
+    }
+
+    private async Task<PatientDetailsViewModel?> GetAllowedPatientDetailsAsync(Guid id)
+    {
+        var model = await _repository.GetPatientDetailsAsync(id);
+        if (model is null)
+        {
+            return null;
+        }
+
+        if (CurrentRole == AppRoles.Doctor && model.Patient.AssignedDoctorId != CurrentDoctorId)
+        {
+            return null;
+        }
+
+        return model;
     }
 
     private static void NormalizeNewPatient(Patient patient)

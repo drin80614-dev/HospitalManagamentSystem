@@ -1,0 +1,79 @@
+@model PatientDetailsViewModel
+@{
+    ViewData["Title"] = $"Print Profile - {Model.Patient.FullName}";
+    string Money(decimal value) => $"{value:N2} EUR";
+    var totalBilled = Model.Payments.Sum(p => p.TotalAmount);
+    var totalPaid = Model.Payments.Sum(p => p.Amount);
+    var totalRemaining = Model.Payments.Sum(p => p.BalanceAmount);
+}
+
+<div class="page-heading no-print">
+    <div><div class="page-kicker">Printable patient document</div><h1>Patient profile</h1></div>
+    <div class="quick-actions">
+        <a class="btn btn-outline-secondary" asp-action="Details" asp-route-id="@Model.Patient.Id"><i class="bi bi-arrow-left me-2"></i>Back</a>
+        <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print profile</button>
+    </div>
+</div>
+
+<div class="print-surface">
+    <div class="print-document-header">
+        <div class="d-flex align-items-center gap-3">
+            <img class="print-logo" src="~/img/vlera-dent-logo.svg" alt="Vlera Dent" />
+            <div>
+                <h2 class="fw-bold mb-1">Vlera Dent</h2>
+                <p class="mb-0 text-soft">Patient clinical profile</p>
+            </div>
+        </div>
+        <div class="text-end">
+            <div class="fw-bold">@Model.Patient.HospitalNumber</div>
+            <div class="text-soft">@DateTime.Now.ToString("dd MMM yyyy HH:mm")</div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-8">
+            <h3 class="fw-bold mb-1">@Model.Patient.FullName</h3>
+            <p class="text-soft mb-0">@Model.Patient.Gender, @Model.Patient.Age years, registered @Model.Patient.RegistrationDate.ToString("dd MMM yyyy")</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <span class="badge-soft status-@Model.Patient.Status">@Model.Patient.Status</span>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6"><div class="print-info"><span>Phone</span><strong>@Model.Patient.Phone</strong></div></div>
+        <div class="col-md-6"><div class="print-info"><span>Dentist</span><strong>@Model.Patient.AssignedDoctorName</strong></div></div>
+        <div class="col-md-6"><div class="print-info"><span>Personal number</span><strong>@Model.Patient.PersonalNumber</strong></div></div>
+        <div class="col-md-6"><div class="print-info"><span>Emergency contact</span><strong>@Model.Patient.EmergencyContactName @Model.Patient.EmergencyContactPhone</strong></div></div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="report-stat"><span>Total billed</span><strong>@Money(totalBilled)</strong></div></div>
+        <div class="col-md-4"><div class="report-stat"><span>Paid</span><strong>@Money(totalPaid)</strong></div></div>
+        <div class="col-md-4"><div class="report-stat"><span>Remaining</span><strong>@Money(totalRemaining)</strong></div></div>
+    </div>
+
+    <h5 class="fw-bold">Medical and dental notes</h5>
+    <div class="print-box mb-4">
+        <div><strong>Allergies:</strong> @(Model.Patient.Allergies ?? "-")</div>
+        <div><strong>Dental notes:</strong> @(Model.Patient.ChronicDiseases ?? "-")</div>
+        <div><strong>Address:</strong> @(Model.Patient.Address ?? "-")</div>
+    </div>
+
+    <h5 class="fw-bold">Recent visits</h5>
+    <table class="table">
+        <thead><tr><th>Date</th><th>Diagnosis</th><th>Treatment plan</th><th>Status</th></tr></thead>
+        <tbody>
+        @foreach (var visit in Model.Visits.Take(8))
+        {
+            <tr><td>@visit.VisitDate.ToString("dd MMM yyyy")</td><td>@visit.Diagnosis</td><td>@visit.TreatmentPlan</td><td>@visit.VisitStatus</td></tr>
+        }
+        @if (!Model.Visits.Any()) { <tr><td colspan="4" class="text-center text-soft py-4">No visits recorded.</td></tr> }
+        </tbody>
+    </table>
+
+    <div class="print-signature-row">
+        <div>Patient signature</div>
+        <div>Clinic signature</div>
+    </div>
+</div>

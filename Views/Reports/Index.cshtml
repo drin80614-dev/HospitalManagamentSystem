@@ -1,45 +1,144 @@
 @model ReportsViewModel
-@{ ViewData["Title"] = "Reports"; }
+@{
+    ViewData["Title"] = "Reports";
+    string Money(decimal value) => $"{value:N2} EUR";
+}
 
 <div class="page-heading">
-    <div><div class="page-kicker">Admin analytics</div><h1>Reports</h1></div>
-    <button class="btn btn-outline-primary no-print" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print</button>
+    <div>
+        <div class="page-kicker">Vlera Dent analytics</div>
+        <h1>Monthly clinic report</h1>
+        <p class="text-soft mb-0">Patients, appointments, payments, remaining balances, and top services.</p>
+    </div>
+    <div class="quick-actions no-print">
+        <button class="btn btn-outline-primary" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print</button>
+        <a class="btn btn-primary" asp-action="ExportCsv" asp-route-type="monthly" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")"><i class="bi bi-download me-2"></i>Monthly CSV</a>
+    </div>
 </div>
 
 <form method="get" class="glass-panel p-3 mb-4 no-print">
     <div class="row g-3 align-items-end">
         <div class="col-md-4"><label class="form-label">From</label><input class="form-control" type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" /></div>
         <div class="col-md-4"><label class="form-label">To</label><input class="form-control" type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" /></div>
-        <div class="col-md-4 d-flex gap-2">
-            <button class="btn btn-primary flex-fill"><i class="bi bi-funnel me-2"></i>Apply</button>
-            <a class="btn btn-outline-secondary" asp-action="ExportCsv" asp-route-type="payments" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")"><i class="bi bi-download"></i></a>
+        <div class="col-md-4 d-grid">
+            <button class="btn btn-primary"><i class="bi bi-funnel me-2"></i>Apply</button>
         </div>
     </div>
 </form>
 
-<div class="row g-4">
-    <div class="col-xl-6">
-        <div class="table-shell">
-            <div class="p-3 d-flex justify-content-between"><h5 class="fw-bold mb-0">Daily patients</h5><a class="btn btn-sm btn-outline-primary no-print" asp-action="ExportCsv" asp-route-type="patients" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")">CSV</a></div>
-            <table class="table"><thead><tr><th>Date</th><th>Registered</th><th>Admitted</th><th>Discharged</th></tr></thead><tbody>@foreach (var r in Model.DailyPatients){<tr><td>@r.ReportDate.ToString("dd MMM yyyy")</td><td>@r.RegisteredPatients</td><td>@r.AdmittedPatients</td><td>@r.DischargedPatients</td></tr>}</tbody></table>
+<div class="print-surface report-print-surface mb-4">
+    <div class="print-document-header">
+        <div class="d-flex align-items-center gap-3">
+            <img class="print-logo" src="~/img/vlera-dent-logo.svg" alt="Vlera Dent" />
+            <div>
+                <h2 class="fw-bold mb-1">Vlera Dent</h2>
+                <p class="mb-0 text-soft">Monthly clinic performance report</p>
+            </div>
+        </div>
+        <div class="text-end">
+            <div class="fw-bold">@Model.From.ToString("dd MMM yyyy") - @Model.To.ToString("dd MMM yyyy")</div>
+            <div class="text-soft">Generated @DateTime.Now.ToString("dd MMM yyyy HH:mm")</div>
         </div>
     </div>
-    <div class="col-xl-6">
-        <div class="table-shell">
-            <div class="p-3"><h5 class="fw-bold mb-0">Payments</h5></div>
-            <table class="table"><thead><tr><th>Date</th><th>Method</th><th>Status</th><th>Total</th><th>Paid</th><th>Remaining</th></tr></thead><tbody>@foreach (var r in Model.Payments){<tr><td>@r.PaymentDate.ToString("dd MMM")</td><td>@r.PaymentMethod</td><td>@r.Status</td><td>@r.TotalAmount.ToString("C")</td><td>@r.PaidAmount.ToString("C")</td><td>@r.BalanceAmount.ToString("C")</td></tr>}</tbody></table>
-        </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3"><div class="report-stat"><span>New patients</span><strong>@Model.TotalPatients</strong></div></div>
+        <div class="col-md-6 col-xl-3"><div class="report-stat"><span>Appointments</span><strong>@Model.TotalAppointments</strong></div></div>
+        <div class="col-md-6 col-xl-3"><div class="report-stat"><span>Paid</span><strong>@Money(Model.TotalPaid)</strong></div></div>
+        <div class="col-md-6 col-xl-3"><div class="report-stat"><span>Remaining</span><strong>@Money(Model.TotalRemaining)</strong></div></div>
     </div>
-    <div class="col-xl-6">
-        <div class="table-shell">
-            <div class="p-3 d-flex justify-content-between"><h5 class="fw-bold mb-0">Doctor performance</h5><a class="btn btn-sm btn-outline-primary no-print" asp-action="ExportCsv" asp-route-type="doctors" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")">CSV</a></div>
-            <table class="table"><thead><tr><th>Dentist</th><th>Visits</th><th>Prescriptions</th></tr></thead><tbody>@foreach (var r in Model.DoctorPerformance){<tr><td>@r.DoctorName</td><td>@r.VisitsCompleted</td><td>@r.PrescriptionsCreated</td></tr>}</tbody></table>
+
+    <div class="table-shell mb-4">
+        <div class="p-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">Monthly summary</h5>
+            <a class="btn btn-sm btn-outline-primary no-print" asp-action="ExportCsv" asp-route-type="monthly" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")">CSV</a>
         </div>
+        <table class="table">
+            <thead><tr><th>Month</th><th>Patients</th><th>Appointments</th><th>Completed</th><th>Total</th><th>Paid</th><th>Remaining</th></tr></thead>
+            <tbody>
+            @foreach (var r in Model.MonthlyClinic)
+            {
+                <tr>
+                    <td>@r.Month.ToString("MMM yyyy")</td>
+                    <td>@r.NewPatients</td>
+                    <td>@r.AppointmentCount</td>
+                    <td>@r.CompletedAppointments</td>
+                    <td>@Money(r.TotalBilled)</td>
+                    <td>@Money(r.TotalPaid)</td>
+                    <td>@Money(r.RemainingBalance)</td>
+                </tr>
+            }
+            @if (!Model.MonthlyClinic.Any()) { <tr><td colspan="7" class="text-center text-soft py-4">No monthly data for this period.</td></tr> }
+            </tbody>
+        </table>
     </div>
-    <div class="col-xl-6">
-        <div class="table-shell">
-            <div class="p-3"><h5 class="fw-bold mb-0">Appointment report</h5></div>
-            <table class="table"><thead><tr><th>Date</th><th>Status</th><th>Count</th></tr></thead><tbody>@foreach (var r in Model.Appointments){<tr><td>@r.AppointmentDate.ToString("dd MMM")</td><td>@r.Status</td><td>@r.AppointmentCount</td></tr>}</tbody></table>
+
+    <div class="row g-4">
+        <div class="col-xl-6">
+            <div class="table-shell h-100">
+                <div class="p-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">Top services</h5>
+                    <a class="btn btn-sm btn-outline-primary no-print" asp-action="ExportCsv" asp-route-type="services" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")">CSV</a>
+                </div>
+                <table class="table">
+                    <thead><tr><th>Service</th><th>Payments</th><th>Paid</th><th>Remaining</th></tr></thead>
+                    <tbody>
+                    @foreach (var r in Model.ServicePerformance)
+                    {
+                        <tr><td>@r.ServiceName</td><td>@r.PaymentCount</td><td>@Money(r.TotalPaid)</td><td>@Money(r.RemainingBalance)</td></tr>
+                    }
+                    @if (!Model.ServicePerformance.Any()) { <tr><td colspan="4" class="text-center text-soft py-4">No service payments yet.</td></tr> }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="table-shell h-100">
+                <div class="p-3"><h5 class="fw-bold mb-0">Payments by day</h5></div>
+                <table class="table">
+                    <thead><tr><th>Date</th><th>Method</th><th>Status</th><th>Paid</th><th>Remaining</th></tr></thead>
+                    <tbody>
+                    @foreach (var r in Model.Payments)
+                    {
+                        <tr><td>@r.PaymentDate.ToString("dd MMM")</td><td>@r.PaymentMethod</td><td>@r.Status</td><td>@Money(r.PaidAmount)</td><td>@Money(r.BalanceAmount)</td></tr>
+                    }
+                    @if (!Model.Payments.Any()) { <tr><td colspan="5" class="text-center text-soft py-4">No payments yet.</td></tr> }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="table-shell h-100">
+                <div class="p-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">Dentist performance</h5>
+                    <a class="btn btn-sm btn-outline-primary no-print" asp-action="ExportCsv" asp-route-type="doctors" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")">CSV</a>
+                </div>
+                <table class="table">
+                    <thead><tr><th>Dentist</th><th>Visits</th><th>Diagnoses</th><th>Prescriptions</th></tr></thead>
+                    <tbody>
+                    @foreach (var r in Model.DoctorPerformance)
+                    {
+                        <tr><td>@r.DoctorName</td><td>@r.VisitsCompleted</td><td>@r.DiagnosesCreated</td><td>@r.PrescriptionsCreated</td></tr>
+                    }
+                    @if (!Model.DoctorPerformance.Any()) { <tr><td colspan="4" class="text-center text-soft py-4">No clinical activity yet.</td></tr> }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="table-shell h-100">
+                <div class="p-3"><h5 class="fw-bold mb-0">Appointments</h5></div>
+                <table class="table">
+                    <thead><tr><th>Date</th><th>Status</th><th>Count</th></tr></thead>
+                    <tbody>
+                    @foreach (var r in Model.Appointments)
+                    {
+                        <tr><td>@r.AppointmentDate.ToString("dd MMM")</td><td>@r.Status</td><td>@r.AppointmentCount</td></tr>
+                    }
+                    @if (!Model.Appointments.Any()) { <tr><td colspan="3" class="text-center text-soft py-4">No appointments yet.</td></tr> }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
