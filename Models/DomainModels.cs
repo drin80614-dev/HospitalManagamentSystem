@@ -504,6 +504,7 @@ public class Payment : EntityBase
     public string? PatientName { get; set; }
     public string? HospitalNumber { get; set; }
     public string? ServiceName { get; set; }
+    public string? ServiceNames { get; set; }
 
     public string PaymentStatusLabel => Status == "Cancelled"
         ? "Anuluar"

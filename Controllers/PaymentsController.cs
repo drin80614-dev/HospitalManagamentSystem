@@ -31,6 +31,14 @@ public class PaymentsController : AppController
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(PaymentCreateViewModel model)
     {
+        model.ServiceIds = model.ServiceIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        if (!model.ServiceIds.Any())
+        {
+            ModelState.AddModelError(nameof(model.ServiceIds), "Select at least one service.");
+        }
+
+        model.Payment.ServiceId = model.ServiceIds.FirstOrDefault();
+
         if (!ModelState.IsValid)
         {
             model.Patients = await _repository.GetPatientOptionsAsync();
@@ -40,7 +48,7 @@ public class PaymentsController : AppController
 
         try
         {
-            var paymentId = await _repository.CreatePaymentAsync(model.Payment, CurrentUserId);
+            var paymentId = await _repository.CreatePaymentAsync(model.Payment, CurrentUserId, model.ServiceIds);
             return FlashAndRedirect("Payment registered and invoice generated.", "Receipt", "Payments", new { paymentId });
         }
         catch (InvalidOperationException ex)

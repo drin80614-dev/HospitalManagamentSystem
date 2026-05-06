@@ -52,6 +52,10 @@ public class PatientDischargeViewModel
 public class PaymentCreateViewModel
 {
     public Payment Payment { get; set; } = new();
+
+    [MinLength(1, ErrorMessage = "Select at least one service.")]
+    public List<Guid> ServiceIds { get; set; } = [];
+
     public IReadOnlyList<Patient> Patients { get; set; } = [];
     public IReadOnlyList<ServiceItem> Services { get; set; } = [];
 }

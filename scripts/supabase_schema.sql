@@ -317,6 +317,21 @@ alter table payments
 add column if not exists total_amount numeric(12,2) not null default 0,
 add column if not exists balance_amount numeric(12,2) not null default 0;
 
+create table if not exists payment_services (
+    payment_id uuid not null references payments(id) on delete cascade,
+    service_id uuid not null references services(id) on delete restrict,
+    created_at timestamptz not null default now(),
+    primary key (payment_id, service_id)
+);
+
+create index if not exists idx_payment_services_service on payment_services(service_id);
+
+insert into payment_services (payment_id, service_id)
+select id, service_id
+from payments
+where service_id is not null
+on conflict (payment_id, service_id) do nothing;
+
 update payments
 set total_amount = case when total_amount <= 0 then amount else total_amount end,
     balance_amount = greatest((case when total_amount <= 0 then amount else total_amount end) - amount, 0),

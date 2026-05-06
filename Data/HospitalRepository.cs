@@ -31,6 +31,22 @@ public class HospitalRepository
         ) svc on true
         """;
 
+    private const string PaymentServicesSelectSql = """
+        left join lateral (
+            select string_agg(s.service_name, ', ' order by s.service_name) as service_names,
+                   min(s.service_name) as service_name
+            from (
+                select ps.service_id
+                from payment_services ps
+                where ps.payment_id = py.id
+                union
+                select py.service_id
+                where py.service_id is not null
+            ) selected_services
+            join services s on s.id = selected_services.service_id
+        ) svc on true
+        """;
+
     public async Task EnsureFeatureSchemaAsync()
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -100,6 +116,21 @@ public class HospitalRepository
             alter table payments
             add column if not exists total_amount numeric(12,2) not null default 0,
             add column if not exists balance_amount numeric(12,2) not null default 0;
+
+            create table if not exists payment_services (
+                payment_id uuid not null references payments(id) on delete cascade,
+                service_id uuid not null references services(id) on delete restrict,
+                created_at timestamptz not null default now(),
+                primary key (payment_id, service_id)
+            );
+
+            create index if not exists idx_payment_services_service on payment_services(service_id);
+
+            insert into payment_services (payment_id, service_id)
+            select id, service_id
+            from payments
+            where service_id is not null
+            on conflict (payment_id, service_id) do nothing;
 
             create table if not exists invoices (
                 id uuid primary key default gen_random_uuid(),
@@ -301,6 +332,7 @@ public class HospitalRepository
                 union all select greatest(created_at, updated_at) from prescriptions
                 union all select greatest(created_at, updated_at) from lab_tests
                 union all select greatest(created_at, updated_at) from payments
+                union all select created_at from payment_services
                 union all select greatest(created_at, updated_at) from invoices
                 union all select greatest(created_at, updated_at) from medication_inventory
                 union all select created_at from audit_logs
@@ -532,10 +564,12 @@ public class HospitalRepository
 
         var pendingPaymentsSql = """
             select py.*, concat(p.first_name, ' ', p.last_name) as patient_name,
-                   p.hospital_number, s.service_name
+                   p.hospital_number, coalesce(svc.service_names, s.service_name) as service_name,
+                   svc.service_names
             from payments py
             join patients p on p.id = py.patient_id
-            join services s on s.id = py.service_id
+            left join services s on s.id = py.service_id
+            """ + PaymentServicesSelectSql + """
             where py.status = 'Pending' or py.balance_amount > 0
             order by py.payment_date desc
             limit 6;
@@ -717,8 +751,11 @@ public class HospitalRepository
             where pr.patient_id = @Id order by pr.prescription_date desc, pr.created_at desc;
             """, new { Id = id });
         var payments = await connection.QueryAsync<Payment>("""
-            select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number, s.service_name
+            select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number,
+                   coalesce(svc.service_names, s.service_name) as service_name,
+                   svc.service_names
             from payments py join patients p on p.id = py.patient_id join services s on s.id = py.service_id
+            """ + PaymentServicesSelectSql + """
             where py.patient_id = @Id order by py.payment_date desc;
             """, new { Id = id });
         var roomAssignments = await connection.QueryAsync<PatientRoomAssignment>("""
@@ -1549,46 +1586,101 @@ public class HospitalRepository
 
     public async Task<IReadOnlyList<Payment>> GetPaymentsAsync(Guid? patientId = null)
     {
-        const string sql = """
-            select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number, s.service_name
+        const string multiServiceSql = """
+            select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number,
+                   coalesce(svc.service_names, s.service_name) as service_name,
+                   svc.service_names
             from payments py
             join patients p on p.id = py.patient_id
-            join services s on s.id = py.service_id
+            left join services s on s.id = py.service_id
+            """ + PaymentServicesSelectSql + """
             where (@PatientId::uuid is null or py.patient_id = @PatientId)
             order by py.payment_date desc;
             """;
 
         using var connection = _connectionFactory.CreateConnection();
-        var payments = await connection.QueryAsync<Payment>(sql, new { PatientId = patientId });
-        return payments.AsList();
+        try
+        {
+            var payments = await connection.QueryAsync<Payment>(multiServiceSql, new { PatientId = patientId });
+            return payments.AsList();
+        }
+        catch
+        {
+            var payments = await connection.QueryAsync<Payment>("""
+                select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number, s.service_name
+                from payments py
+                join patients p on p.id = py.patient_id
+                join services s on s.id = py.service_id
+                where (@PatientId::uuid is null or py.patient_id = @PatientId)
+                order by py.payment_date desc;
+                """, new { PatientId = patientId });
+            return payments.AsList();
+        }
     }
 
     public async Task<Payment?> GetPaymentByIdAsync(Guid id)
     {
-        const string sql = """
-            select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number, s.service_name
+        const string multiServiceSql = """
+            select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number,
+                   coalesce(svc.service_names, s.service_name) as service_name,
+                   svc.service_names
             from payments py
             join patients p on p.id = py.patient_id
-            join services s on s.id = py.service_id
+            left join services s on s.id = py.service_id
+            """ + PaymentServicesSelectSql + """
             where py.id = @Id;
             """;
 
         using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<Payment>(sql, new { Id = id });
+        try
+        {
+            return await connection.QueryFirstOrDefaultAsync<Payment>(multiServiceSql, new { Id = id });
+        }
+        catch
+        {
+            return await connection.QueryFirstOrDefaultAsync<Payment>("""
+                select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number, s.service_name
+                from payments py
+                join patients p on p.id = py.patient_id
+                join services s on s.id = py.service_id
+                where py.id = @Id;
+                """, new { Id = id });
+        }
     }
 
-    public async Task<Guid> CreatePaymentAsync(Payment payment, Guid actorUserId)
+    public async Task<Guid> CreatePaymentAsync(Payment payment, Guid actorUserId, IReadOnlyCollection<Guid>? serviceIds = null)
     {
+        var selectedServiceIds = serviceIds is null || serviceIds.Count == 0
+            ? new[] { payment.ServiceId }.Where(id => id != Guid.Empty).ToArray()
+            : serviceIds.Where(id => id != Guid.Empty).Distinct().ToArray();
+
+        if (selectedServiceIds.Length == 0)
+        {
+            throw new InvalidOperationException("Select at least one service.");
+        }
+
+        payment.ServiceId = selectedServiceIds[0];
+
         using var connection = _connectionFactory.CreateConnection();
         connection.Open();
         using var transaction = connection.BeginTransaction();
 
-        var servicePrice = await connection.ExecuteScalarAsync<decimal?>("select price from services where id = @ServiceId;", payment, transaction)
-            ?? throw new InvalidOperationException("Selected service was not found.");
+        var selectedServices = (await connection.QueryAsync<ServiceItem>("""
+            select *
+            from services
+            where id = any(@ServiceIds);
+            """, new { ServiceIds = selectedServiceIds }, transaction)).AsList();
+
+        if (selectedServices.Count != selectedServiceIds.Length)
+        {
+            throw new InvalidOperationException("One or more selected services were not found.");
+        }
+
+        var servicesTotal = selectedServices.Sum(service => service.Price);
 
         if (payment.TotalAmount <= 0)
         {
-            payment.TotalAmount = servicePrice;
+            payment.TotalAmount = servicesTotal;
         }
 
         if (payment.Amount < 0 || payment.TotalAmount < 0)
@@ -1611,6 +1703,16 @@ public class HospitalRepository
             values (@PatientId, @ServiceId, @Amount, @TotalAmount, @BalanceAmount, @PaymentMethod, @PaymentDate, @Status, @Notes)
             returning id;
             """, payment, transaction);
+
+        var hasPaymentServices = await connection.ExecuteScalarAsync<bool>("select to_regclass('public.payment_services') is not null;", transaction: transaction);
+        if (hasPaymentServices)
+        {
+            await connection.ExecuteAsync("""
+                insert into payment_services (payment_id, service_id)
+                select @PaymentId, unnest(@ServiceIds::uuid[])
+                on conflict (payment_id, service_id) do nothing;
+                """, new { PaymentId = paymentId, ServiceIds = selectedServiceIds }, transaction);
+        }
 
         await connection.ExecuteAsync("""
             insert into invoices (payment_id, total_amount, status)
@@ -1678,18 +1780,35 @@ public class HospitalRepository
 
     public async Task<Invoice?> GetInvoiceByPaymentAsync(Guid paymentId)
     {
-        const string sql = """
+        const string multiServiceSql = """
             select i.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number,
-                   s.service_name, py.payment_method, py.amount as paid_amount, py.balance_amount
+                   coalesce(svc.service_names, s.service_name) as service_name,
+                   py.payment_method, py.amount as paid_amount, py.balance_amount
             from invoices i
             join payments py on py.id = i.payment_id
             join patients p on p.id = py.patient_id
-            join services s on s.id = py.service_id
+            left join services s on s.id = py.service_id
+            """ + PaymentServicesSelectSql + """
             where i.payment_id = @PaymentId;
             """;
 
         using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<Invoice>(sql, new { PaymentId = paymentId });
+        try
+        {
+            return await connection.QueryFirstOrDefaultAsync<Invoice>(multiServiceSql, new { PaymentId = paymentId });
+        }
+        catch
+        {
+            return await connection.QueryFirstOrDefaultAsync<Invoice>("""
+                select i.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number,
+                       s.service_name, py.payment_method, py.amount as paid_amount, py.balance_amount
+                from invoices i
+                join payments py on py.id = i.payment_id
+                join patients p on p.id = py.patient_id
+                join services s on s.id = py.service_id
+                where i.payment_id = @PaymentId;
+                """, new { PaymentId = paymentId });
+        }
     }
 
     public async Task<InventoryViewModel> GetInventoryAsync(string? search, bool lowStockOnly)
