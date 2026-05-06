@@ -1328,6 +1328,8 @@ public class HospitalRepository
                 """, new { AppointmentId = id, ServiceIds = selectedServiceIds }, transaction);
         }
 
+        await UpsertPlannedVisitForAppointmentAsync(connection, transaction, id, appointment.Status);
+
         transaction.Commit();
         await AddAuditLogAsync(actorUserId, "appointment created", "appointments", id, appointment.Reason);
         return id;
@@ -1398,6 +1400,8 @@ public class HospitalRepository
                 """, new { AppointmentId = appointment.Id, ServiceIds = selectedServiceIds }, transaction);
         }
 
+        await UpsertPlannedVisitForAppointmentAsync(connection, transaction, appointment.Id, appointment.Status);
+
         transaction.Commit();
         await AddAuditLogAsync(actorUserId, "appointment edited", "appointments", appointment.Id, $"{appointment.AppointmentDate:yyyy-MM-dd} {appointment.AppointmentTime:hh\\:mm}");
     }
@@ -1437,7 +1441,11 @@ public class HospitalRepository
     public async Task UpdateAppointmentStatusAsync(Guid id, string status, Guid actorUserId)
     {
         using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync("update appointments set status = @Status, updated_at = now() where id = @Id;", new { Id = id, Status = status });
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+        await connection.ExecuteAsync("update appointments set status = @Status, updated_at = now() where id = @Id;", new { Id = id, Status = status }, transaction);
+        await UpsertPlannedVisitForAppointmentAsync(connection, transaction, id, status);
+        transaction.Commit();
         await AddAuditLogAsync(actorUserId, "appointment status updated", "appointments", id, status);
     }
 
@@ -1459,6 +1467,60 @@ public class HospitalRepository
 
         await AddAuditLogAsync(actorUserId, "visit created", "visits", id, visit.Diagnosis);
         return id;
+    }
+
+    private static async Task UpsertPlannedVisitForAppointmentAsync(
+        System.Data.IDbConnection connection,
+        System.Data.IDbTransaction transaction,
+        Guid appointmentId,
+        string? status)
+    {
+        await connection.ExecuteAsync("""
+            with appointment_context as (
+                select a.id,
+                       a.patient_id,
+                       a.doctor_id,
+                       (a.appointment_date + a.appointment_time) as visit_date,
+                       coalesce(nullif(a.reason, ''), 'Termin i planifikuar') as symptoms,
+                       'Termin i planifikuar' as diagnosis,
+                       coalesce(nullif(svc.service_names, ''), nullif(a.reason, ''), 'Trajtim dentar') as treatment_plan,
+                       a.notes,
+                       coalesce(@Status, a.status, 'Scheduled') as visit_status
+                from appointments a
+                left join lateral (
+                    select string_agg(s.service_name, ', ' order by s.service_name) as service_names
+                    from (
+                        select aps.service_id
+                        from appointment_services aps
+                        where aps.appointment_id = a.id
+                        union
+                        select a.service_id
+                        where a.service_id is not null
+                    ) selected_services
+                    join services s on s.id = selected_services.service_id
+                ) svc on true
+                where a.id = @AppointmentId
+            ),
+            updated as (
+                update visits v
+                set patient_id = ac.patient_id,
+                    doctor_id = ac.doctor_id,
+                    visit_date = ac.visit_date,
+                    symptoms = ac.symptoms,
+                    diagnosis = ac.diagnosis,
+                    treatment_plan = ac.treatment_plan,
+                    notes = ac.notes,
+                    visit_status = ac.visit_status,
+                    updated_at = now()
+                from appointment_context ac
+                where v.appointment_id = ac.id
+                returning v.id
+            )
+            insert into visits (patient_id, doctor_id, appointment_id, visit_date, symptoms, diagnosis, treatment_plan, notes, visit_status)
+            select ac.patient_id, ac.doctor_id, ac.id, ac.visit_date, ac.symptoms, ac.diagnosis, ac.treatment_plan, ac.notes, ac.visit_status
+            from appointment_context ac
+            where not exists (select 1 from updated);
+            """, new { AppointmentId = appointmentId, Status = status }, transaction);
     }
 
     public async Task<IReadOnlyList<Disease>> GetDiseasesAsync()
