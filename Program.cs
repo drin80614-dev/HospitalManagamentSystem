@@ -62,9 +62,14 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+var isRenderDeployment = !string.IsNullOrWhiteSpace(renderPort);
+if (!app.Environment.IsDevelopment() || isRenderDeployment)
 {
     app.UseExceptionHandler("/Home/Error");
+}
+
+if (!app.Environment.IsDevelopment())
+{
     app.UseHsts();
 }
 

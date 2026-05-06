@@ -735,35 +735,71 @@ public class HospitalRepository
         }
 
         using var connection = _connectionFactory.CreateConnection();
-        var visits = await connection.QueryAsync<Visit>("""
+
+        async Task<IReadOnlyList<T>> SafeQueryAsync<T>(string sql, object? parameters = null)
+        {
+            try
+            {
+                var rows = await connection.QueryAsync<T>(sql, parameters);
+                return rows.AsList();
+            }
+            catch
+            {
+                return Array.Empty<T>();
+            }
+        }
+
+        async Task<IReadOnlyList<Payment>> SafePaymentHistoryAsync()
+        {
+            try
+            {
+                var rows = await connection.QueryAsync<Payment>("""
+                    select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number,
+                           coalesce(svc.service_names, s.service_name) as service_name,
+                           svc.service_names
+                    from payments py
+                    join patients p on p.id = py.patient_id
+                    left join services s on s.id = py.service_id
+                    """ + PaymentServicesSelectSql + """
+                    where py.patient_id = @Id order by py.payment_date desc;
+                    """, new { Id = id });
+                return rows.AsList();
+            }
+            catch
+            {
+                var rows = await connection.QueryAsync<Payment>("""
+                    select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number, s.service_name
+                    from payments py
+                    join patients p on p.id = py.patient_id
+                    join services s on s.id = py.service_id
+                    where py.patient_id = @Id order by py.payment_date desc;
+                    """, new { Id = id });
+                return rows.AsList();
+            }
+        }
+
+        var visits = await SafeQueryAsync<Visit>("""
             select v.*, concat(p.first_name, ' ', p.last_name) as patient_name, concat(d.first_name, ' ', d.last_name) as doctor_name
             from visits v join patients p on p.id = v.patient_id join doctors d on d.id = v.doctor_id
             where v.patient_id = @Id order by v.visit_date desc;
             """, new { Id = id });
-        var diagnoses = await connection.QueryAsync<Diagnosis>("""
+        var diagnoses = await SafeQueryAsync<Diagnosis>("""
             select dg.*, concat(p.first_name, ' ', p.last_name) as patient_name, concat(d.first_name, ' ', d.last_name) as doctor_name
             from diagnoses dg join patients p on p.id = dg.patient_id join doctors d on d.id = dg.doctor_id
             where dg.patient_id = @Id order by dg.diagnosis_date desc, dg.created_at desc;
             """, new { Id = id });
-        var prescriptions = await connection.QueryAsync<Prescription>("""
+        var prescriptions = await SafeQueryAsync<Prescription>("""
             select pr.*, concat(p.first_name, ' ', p.last_name) as patient_name, concat(d.first_name, ' ', d.last_name) as doctor_name, d.license_number as doctor_license_number
             from prescriptions pr join patients p on p.id = pr.patient_id join doctors d on d.id = pr.doctor_id
             where pr.patient_id = @Id order by pr.prescription_date desc, pr.created_at desc;
             """, new { Id = id });
-        var payments = await connection.QueryAsync<Payment>("""
-            select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number,
-                   coalesce(svc.service_names, s.service_name) as service_name,
-                   svc.service_names
-            from payments py join patients p on p.id = py.patient_id join services s on s.id = py.service_id
-            """ + PaymentServicesSelectSql + """
-            where py.patient_id = @Id order by py.payment_date desc;
-            """, new { Id = id });
-        var roomAssignments = await connection.QueryAsync<PatientRoomAssignment>("""
+        var payments = await SafePaymentHistoryAsync();
+        var roomAssignments = await SafeQueryAsync<PatientRoomAssignment>("""
             select pra.*, concat(p.first_name, ' ', p.last_name) as patient_name, r.room_number, r.room_type
             from patient_room_assignments pra join patients p on p.id = pra.patient_id join rooms r on r.id = pra.room_id
             where pra.patient_id = @Id order by pra.admission_date desc;
             """, new { Id = id });
-        var labTests = await connection.QueryAsync<LabTest>("""
+        var labTests = await SafeQueryAsync<LabTest>("""
             select lt.*, concat(p.first_name, ' ', p.last_name) as patient_name, concat(d.first_name, ' ', d.last_name) as doctor_name
             from lab_tests lt join patients p on p.id = lt.patient_id join doctors d on d.id = lt.doctor_id
             where lt.patient_id = @Id order by lt.requested_date desc, lt.created_at desc;
