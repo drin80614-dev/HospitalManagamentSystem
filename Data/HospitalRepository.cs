@@ -80,7 +80,15 @@ public class HospitalRepository
                 where status <> 'Cancelled';
 
             alter table appointments
-            add column if not exists service_id uuid references services(id) on delete set null;
+            add column if not exists service_id uuid references services(id) on delete set null,
+            add column if not exists reminder_enabled boolean not null default true,
+            add column if not exists reminder_sent_at timestamptz,
+            add column if not exists reminder_status varchar(40) not null default 'Not Sent',
+            add column if not exists reminder_error text;
+
+            create index if not exists idx_appointments_reminder_due
+                on appointments(appointment_date, appointment_time)
+                where reminder_enabled = true and reminder_sent_at is null and status in ('Scheduled', 'Waiting');
 
             create table if not exists appointment_services (
                 appointment_id uuid not null references appointments(id) on delete cascade,
@@ -489,7 +497,7 @@ public class HospitalRepository
             """;
 
         var appointmentSql = """
-            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.phone as patient_phone,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
                    svc.service_name, svc.service_price, svc.service_names, svc.services_total
             from appointments a
@@ -1080,7 +1088,7 @@ public class HospitalRepository
     public async Task<AppointmentListViewModel> GetAppointmentsAsync(Guid? doctorId, DateTime? date, string? status)
     {
         const string multiServiceSql = """
-            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.phone as patient_phone,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
                    svc.service_name, svc.service_price, svc.service_names, svc.services_total
             from appointments a
@@ -1094,7 +1102,7 @@ public class HospitalRepository
             """;
 
         const string fallbackSql = """
-            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.phone as patient_phone,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
                    s.service_name, s.price as service_price, s.service_name as service_names, s.price as services_total
             from appointments a
@@ -1129,7 +1137,7 @@ public class HospitalRepository
     public async Task<Appointment?> GetAppointmentAsync(Guid id)
     {
         const string multiServiceSql = """
-            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.phone as patient_phone,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
                    svc.service_name, svc.service_price, svc.service_names, svc.services_total
             from appointments a
@@ -1140,7 +1148,7 @@ public class HospitalRepository
             """;
 
         const string fallbackSql = """
-            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.phone as patient_phone,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
                    s.service_name, s.price as service_price, s.service_name as service_names, s.price as services_total
             from appointments a
@@ -1220,7 +1228,7 @@ public class HospitalRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         const string multiServiceSql = """
-            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.phone as patient_phone,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
                    svc.service_name, svc.service_price, svc.service_names, svc.services_total
             from appointments a
@@ -1233,7 +1241,7 @@ public class HospitalRepository
             """;
 
         const string fallbackSql = """
-            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.phone as patient_phone,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
                    s.service_name, s.price as service_price, s.service_name as service_names, s.price as services_total
             from appointments a
@@ -1253,6 +1261,61 @@ public class HospitalRepository
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync("update appointments set status = @Status, updated_at = now() where id = @Id;", new { Id = id, Status = status });
         await AddAuditLogAsync(actorUserId, "appointment status updated", "appointments", id, status);
+    }
+
+    public async Task<IReadOnlyList<Appointment>> GetDueWhatsAppReminderAppointmentsAsync(DateTime nowLocal, int leadHours, int limit)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        const string multiServiceSql = """
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.phone as patient_phone,
+                   concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
+                   svc.service_name, svc.service_price, svc.service_names, svc.services_total
+            from appointments a
+            join patients p on p.id = a.patient_id
+            join doctors d on d.id = a.doctor_id
+            """ + AppointmentServicesSelectSql + """
+            where coalesce(a.reminder_enabled, true) = true
+              and a.reminder_sent_at is null
+              and a.status in ('Scheduled', 'Waiting')
+              and p.phone is not null
+              and btrim(p.phone) <> ''
+              and (a.appointment_date + a.appointment_time) between @NowLocal and (@NowLocal + (@LeadHours * interval '1 hour'))
+            order by a.appointment_date, a.appointment_time
+            limit @Limit;
+            """;
+
+        const string fallbackSql = """
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.phone as patient_phone,
+                   concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
+                   s.service_name, s.price as service_price, s.service_name as service_names, s.price as services_total
+            from appointments a
+            join patients p on p.id = a.patient_id
+            join doctors d on d.id = a.doctor_id
+            left join services s on s.id = a.service_id
+            where coalesce(a.reminder_enabled, true) = true
+              and a.reminder_sent_at is null
+              and a.status in ('Scheduled', 'Waiting')
+              and p.phone is not null
+              and btrim(p.phone) <> ''
+              and (a.appointment_date + a.appointment_time) between @NowLocal and (@NowLocal + (@LeadHours * interval '1 hour'))
+            order by a.appointment_date, a.appointment_time
+            limit @Limit;
+            """;
+
+        return await QueryAppointmentsWithFallbackAsync(connection, multiServiceSql, fallbackSql, new { NowLocal = nowLocal, LeadHours = leadHours, Limit = limit });
+    }
+
+    public async Task MarkAppointmentReminderAsync(Guid id, string status, string? error = null)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.ExecuteAsync("""
+            update appointments
+            set reminder_sent_at = case when @Status = 'Sent' then now() else reminder_sent_at end,
+                reminder_status = @Status,
+                reminder_error = @Error,
+                updated_at = now()
+            where id = @Id;
+            """, new { Id = id, Status = status, Error = error });
     }
 
     public async Task<Guid> CreateVisitAsync(Visit visit, Guid actorUserId)
@@ -1692,7 +1755,7 @@ public class HospitalRepository
             """, new { Query = clean });
 
         var appointments = await connection.QueryAsync<Appointment>("""
-            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name,
+            select a.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.phone as patient_phone,
                    concat(d.first_name, ' ', d.last_name) as doctor_name, d.specialization as doctor_specialization,
                    svc.service_name, svc.service_price, svc.service_names, svc.services_total
             from appointments a

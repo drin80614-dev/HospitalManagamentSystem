@@ -58,6 +58,21 @@ or:
 dotnet user-secrets set "Supabase:DbPassword" "YOUR-SUPABASE-DATABASE-PASSWORD"
 ```
 
+## WhatsApp Appointment Reminders
+
+Automatic WhatsApp reminders are disabled by default. To enable them on Render, add these environment variables:
+
+```text
+WhatsApp__Enabled=true
+WhatsApp__AccessToken=YOUR_META_WHATSAPP_ACCESS_TOKEN
+WhatsApp__PhoneNumberId=YOUR_WHATSAPP_PHONE_NUMBER_ID
+WhatsApp__ReminderLeadHours=24
+WhatsApp__PollMinutes=5
+WhatsApp__ClinicName=Vlera Dent
+```
+
+The background worker checks upcoming scheduled appointments, sends one reminder, and stores the reminder status in Supabase. The appointment list also includes a manual WhatsApp button when the patient has a phone number.
+
 ## Create Database Tables
 
 1. Open Supabase Dashboard.
@@ -93,7 +108,7 @@ After running the SQL seed:
 Controllers/     MVC controllers and role portals
 Data/            Supabase options, Npgsql connection factory, Dapper repository
 Models/          Hospital domain entities
-Services/        Password hashing service
+Services/        Password hashing and WhatsApp reminder services
 ViewModels/      Dashboard, workflow, auth, search, and report models
 Views/           Bootstrap MVC views and shared layout
 wwwroot/         CSS, JavaScript, Bootstrap assets

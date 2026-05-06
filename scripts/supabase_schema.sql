@@ -159,6 +159,10 @@ create table if not exists appointments (
     appointment_time time not null,
     reason varchar(220) not null,
     status varchar(30) not null default 'Scheduled' check (status in ('Scheduled', 'Waiting', 'In Progress', 'Completed', 'Cancelled')),
+    reminder_enabled boolean not null default true,
+    reminder_sent_at timestamptz,
+    reminder_status varchar(40) not null default 'Not Sent',
+    reminder_error text,
     notes text,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
@@ -289,6 +293,12 @@ begin
     end if;
 end $$;
 
+alter table appointments
+add column if not exists reminder_enabled boolean not null default true,
+add column if not exists reminder_sent_at timestamptz,
+add column if not exists reminder_status varchar(40) not null default 'Not Sent',
+add column if not exists reminder_error text;
+
 create table if not exists appointment_services (
     appointment_id uuid not null references appointments(id) on delete cascade,
     service_id uuid not null references services(id) on delete restrict,
@@ -385,6 +395,8 @@ create index if not exists idx_doctors_department on doctors(department_id);
 create index if not exists idx_rooms_status on rooms(status);
 create index if not exists idx_appointments_doctor_date on appointments(doctor_id, appointment_date);
 create index if not exists idx_appointments_patient on appointments(patient_id);
+create index if not exists idx_appointments_reminder_due on appointments(appointment_date, appointment_time)
+    where reminder_enabled = true and reminder_sent_at is null and status in ('Scheduled', 'Waiting');
 create index if not exists idx_visits_patient on visits(patient_id);
 create index if not exists idx_diagnoses_patient on diagnoses(patient_id);
 create index if not exists idx_prescriptions_patient on prescriptions(patient_id);

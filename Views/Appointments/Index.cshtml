@@ -1,5 +1,32 @@
 @model AppointmentListViewModel
 @{ ViewData["Title"] = "Appointments"; }
+@functions {
+    private static string? WhatsAppPhone(string? phone)
+    {
+        var digits = new string((phone ?? string.Empty).Where(char.IsDigit).ToArray());
+        if (string.IsNullOrWhiteSpace(digits))
+        {
+            return null;
+        }
+
+        if (digits.StartsWith("00"))
+        {
+            digits = digits[2..];
+        }
+        else if (digits.StartsWith("0"))
+        {
+            digits = "383" + digits[1..];
+        }
+
+        return digits.Length >= 8 ? digits : null;
+    }
+
+    private static string WhatsAppReminderText(Appointment item)
+    {
+        var service = item.ServiceNames ?? item.ServiceName ?? "kontrollen/trajtimin tuaj";
+        return $"Pershendetje {item.PatientName}, ju rikujtojme terminin tuaj ne Vlera Dent me {item.AppointmentDate:dd.MM.yyyy} ora {item.AppointmentTime:hh\\:mm}. Sherbimi: {service}. Ju lutemi paraqituni me kohe. Faleminderit!";
+    }
+}
 
 <div class="page-heading">
     <div><div class="page-kicker">Appointments</div><h1>Schedule</h1></div>
@@ -53,7 +80,7 @@
 
 <div class="table-shell">
     <table class="table align-middle">
-        <thead><tr><th>No.</th><th>Date</th><th>Patient</th><th>Doctor</th><th>Service</th><th>Reason</th><th>Status</th><th class="text-end">Update</th></tr></thead>
+        <thead><tr><th>No.</th><th>Date</th><th>Patient</th><th>Doctor</th><th>Service</th><th>Reason</th><th>Status</th><th>Reminder</th><th class="text-end">Update</th></tr></thead>
         <tbody>
         @foreach (var item in Model.Appointments)
         {
@@ -71,6 +98,31 @@
                 </td>
                 <td>@item.Reason</td>
                 <td><span class="badge-soft status-@item.Status.Replace(" ", "")">@item.Status</span></td>
+                <td>
+                    @if (item.ReminderSentAt.HasValue)
+                    {
+                        <span class="badge-soft status-Completed">Sent</span>
+                        <div class="text-soft small">@item.ReminderSentAt.Value.ToString("dd MMM HH:mm")</div>
+                    }
+                    else
+                    {
+                        var phone = WhatsAppPhone(item.PatientPhone);
+                        if (!string.IsNullOrWhiteSpace(phone))
+                        {
+                            <a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener" href="https://wa.me/@phone?text=@Uri.EscapeDataString(WhatsAppReminderText(item))">
+                                <i class="bi bi-whatsapp me-1"></i>WhatsApp
+                            </a>
+                            @if (item.ReminderStatus == "Failed")
+                            {
+                                <div class="text-danger small">Auto failed</div>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-soft small">No phone</span>
+                        }
+                    }
+                </td>
                 <td class="text-end">
                     <form method="post" asp-action="Status" class="d-flex gap-2 justify-content-end">
                         <input type="hidden" name="id" value="@item.Id" />
@@ -85,7 +137,7 @@
                 </td>
             </tr>
         }
-        @if (!Model.Appointments.Any()) { <tr><td colspan="8" class="text-center text-soft py-4">No appointments found.</td></tr> }
+        @if (!Model.Appointments.Any()) { <tr><td colspan="9" class="text-center text-soft py-4">No appointments found.</td></tr> }
         </tbody>
     </table>
 </div>

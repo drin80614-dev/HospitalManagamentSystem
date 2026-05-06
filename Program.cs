@@ -16,9 +16,12 @@ SqlMapper.AddTypeHandler(new DapperDateTimeHandler());
 SqlMapper.AddTypeHandler(new DapperTimeSpanHandler());
 
 builder.Services.Configure<SupabaseOptions>(builder.Configuration.GetSection("Supabase"));
+builder.Services.Configure<WhatsAppOptions>(builder.Configuration.GetSection("WhatsApp"));
 builder.Services.AddScoped<IDbConnectionFactory, NpgsqlConnectionFactory>();
 builder.Services.AddScoped<HospitalRepository>();
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
+builder.Services.AddHttpClient<IWhatsAppReminderService, WhatsAppReminderService>();
+builder.Services.AddHostedService<AppointmentReminderWorker>();
 builder.Services.AddAntiforgery(options =>
 {
     options.Cookie.Name = "HMS.AntiForgery";
