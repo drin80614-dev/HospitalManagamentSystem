@@ -269,11 +269,6 @@ public class Appointment : EntityBase
     public decimal? ServicePrice { get; set; }
     public string? ServiceNames { get; set; }
     public decimal? ServicesTotal { get; set; }
-    public string? PatientPhone { get; set; }
-    public bool ReminderEnabled { get; set; } = true;
-    public DateTime? ReminderSentAt { get; set; }
-    public string ReminderStatus { get; set; } = "Not Sent";
-    public string? ReminderError { get; set; }
 }
 
 public class Visit : EntityBase
