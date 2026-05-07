@@ -329,6 +329,8 @@ public class Diagnosis : EntityBase
 
     public Guid? DiseaseId { get; set; }
 
+    public Guid? AppointmentId { get; set; }
+
     [Required, StringLength(160)]
     public string DiseaseName { get; set; } = string.Empty;
 

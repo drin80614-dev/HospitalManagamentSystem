@@ -113,6 +113,13 @@ public class HospitalRepository
             where service_id is not null
             on conflict (appointment_id, service_id) do nothing;
 
+            alter table diagnoses
+            add column if not exists appointment_id uuid references appointments(id) on delete set null;
+
+            create unique index if not exists idx_diagnoses_appointment_id
+                on diagnoses(appointment_id)
+                where appointment_id is not null;
+
             alter table payments
             add column if not exists total_amount numeric(12,2) not null default 0,
             add column if not exists balance_amount numeric(12,2) not null default 0;
@@ -160,6 +167,35 @@ public class HospitalRepository
             from payments py
             where py.id = i.payment_id
               and i.total_amount <> py.total_amount;
+
+            insert into diagnoses (patient_id, doctor_id, appointment_id, disease_name, severity, description, diagnosis_date, treatment_recommendation)
+            select a.patient_id,
+                   a.doctor_id,
+                   a.id,
+                   coalesce(nullif(svc.service_names, ''), nullif(a.reason, ''), 'Trajtim dentar') as disease_name,
+                   'Low',
+                   a.notes,
+                   a.appointment_date,
+                   coalesce(nullif(svc.service_names, ''), nullif(a.reason, ''), 'Trajtim dentar') as treatment_recommendation
+            from appointments a
+            left join lateral (
+                select string_agg(s.service_name, ', ' order by s.service_name) as service_names
+                from (
+                    select aps.service_id
+                    from appointment_services aps
+                    where aps.appointment_id = a.id
+                    union
+                    select a.service_id
+                    where a.service_id is not null
+                ) selected_services
+                join services s on s.id = selected_services.service_id
+            ) svc on true
+            where a.status <> 'Cancelled'
+              and not exists (
+                  select 1
+                  from diagnoses dg
+                  where dg.appointment_id = a.id
+              );
 
             delete from medication_inventory
             where medication_name in (
@@ -1523,6 +1559,50 @@ public class HospitalRepository
             from appointment_context ac
             where not exists (select 1 from updated);
             """, new { AppointmentId = appointmentId, Status = status }, transaction);
+
+        await connection.ExecuteAsync("""
+            with appointment_context as (
+                select a.id,
+                       a.patient_id,
+                       a.doctor_id,
+                       coalesce(nullif(svc.service_names, ''), nullif(a.reason, ''), 'Trajtim dentar') as disease_name,
+                       a.notes as description,
+                       a.appointment_date as diagnosis_date,
+                       coalesce(nullif(svc.service_names, ''), nullif(a.reason, ''), 'Trajtim dentar') as treatment_recommendation
+                from appointments a
+                left join lateral (
+                    select string_agg(s.service_name, ', ' order by s.service_name) as service_names
+                    from (
+                        select aps.service_id
+                        from appointment_services aps
+                        where aps.appointment_id = a.id
+                        union
+                        select a.service_id
+                        where a.service_id is not null
+                    ) selected_services
+                    join services s on s.id = selected_services.service_id
+                ) svc on true
+                where a.id = @AppointmentId
+            ),
+            updated as (
+                update diagnoses dg
+                set patient_id = ac.patient_id,
+                    doctor_id = ac.doctor_id,
+                    disease_name = ac.disease_name,
+                    severity = 'Low',
+                    description = ac.description,
+                    diagnosis_date = ac.diagnosis_date,
+                    treatment_recommendation = ac.treatment_recommendation,
+                    updated_at = now()
+                from appointment_context ac
+                where dg.appointment_id = ac.id
+                returning dg.id
+            )
+            insert into diagnoses (patient_id, doctor_id, appointment_id, disease_name, severity, description, diagnosis_date, treatment_recommendation)
+            select ac.patient_id, ac.doctor_id, ac.id, ac.disease_name, 'Low', ac.description, ac.diagnosis_date, ac.treatment_recommendation
+            from appointment_context ac
+            where not exists (select 1 from updated);
+            """, new { AppointmentId = appointmentId }, transaction);
     }
 
     public async Task<IReadOnlyList<Disease>> GetDiseasesAsync()

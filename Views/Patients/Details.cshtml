@@ -47,7 +47,7 @@
     <div class="col-xl-8">
         <div class="glass-panel p-3">
             <ul class="nav nav-pills gap-2 mb-3 no-print" id="patientTabs" role="tablist">
-                @foreach (var tab in new[] { "Basic", "Medical", "Visits", "Prescriptions", "Payments", "Documents" })
+                @foreach (var tab in new[] { "Basic", "Medical", "Visits", "Diagnoses", "Prescriptions", "Payments", "Documents" })
                 {
                     <li class="nav-item" role="presentation">
                         <button class="nav-link @(tab == "Basic" ? "active" : "")" data-bs-toggle="pill" data-bs-target="#tab-@tab" type="button">@tab</button>
@@ -74,6 +74,9 @@
                 </div>
                 <div class="tab-pane fade" id="tab-Visits">
                     <partial name="_VisitTable" model="Model.Visits" />
+                </div>
+                <div class="tab-pane fade" id="tab-Diagnoses">
+                    <partial name="_DiagnosisTable" model="Model.Diagnoses" />
                 </div>
                 <div class="tab-pane fade" id="tab-Prescriptions">
                     <partial name="_PrescriptionTable" model="Model.Prescriptions" />

@@ -196,6 +196,7 @@ create table if not exists diagnoses (
     patient_id uuid not null references patients(id) on delete cascade,
     doctor_id uuid not null references doctors(id) on delete restrict,
     disease_id uuid references diseases(id) on delete set null,
+    appointment_id uuid references appointments(id) on delete set null,
     disease_name varchar(160) not null,
     icd_code varchar(40),
     severity varchar(30) not null default 'Low' check (severity in ('Low', 'Medium', 'High', 'Critical')),
@@ -402,6 +403,7 @@ create index if not exists idx_appointments_doctor_date on appointments(doctor_i
 create index if not exists idx_appointments_patient on appointments(patient_id);
 create index if not exists idx_visits_patient on visits(patient_id);
 create index if not exists idx_diagnoses_patient on diagnoses(patient_id);
+create unique index if not exists idx_diagnoses_appointment_id on diagnoses(appointment_id) where appointment_id is not null;
 create index if not exists idx_prescriptions_patient on prescriptions(patient_id);
 create index if not exists idx_lab_tests_patient on lab_tests(patient_id);
 create index if not exists idx_password_reset_tokens_token on password_reset_tokens(token);
