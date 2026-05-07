@@ -857,9 +857,13 @@ public class HospitalRepository
                 var rows = await connection.QueryAsync<Payment>("""
                     select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number,
                            coalesce(svc.service_names, s.service_name) as service_name,
-                           svc.service_names
+                           svc.service_names,
+                           appt.appointment_number,
+                           appt.appointment_date,
+                           appt.appointment_time
                     from payments py
                     join patients p on p.id = py.patient_id
+                    left join appointments appt on appt.id = py.appointment_id
                     left join services s on s.id = py.service_id
                     """ + PaymentServicesSelectSql + """
                     where py.patient_id = @Id order by py.payment_date desc;
@@ -1958,9 +1962,13 @@ public class HospitalRepository
         const string multiServiceSql = """
             select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number,
                    coalesce(svc.service_names, s.service_name) as service_name,
-                   svc.service_names
+                   svc.service_names,
+                   appt.appointment_number,
+                   appt.appointment_date,
+                   appt.appointment_time
             from payments py
             join patients p on p.id = py.patient_id
+            left join appointments appt on appt.id = py.appointment_id
             left join services s on s.id = py.service_id
             """ + PaymentServicesSelectSql + """
             where (@PatientId::uuid is null or py.patient_id = @PatientId)
@@ -1992,9 +2000,13 @@ public class HospitalRepository
         const string multiServiceSql = """
             select py.*, concat(p.first_name, ' ', p.last_name) as patient_name, p.hospital_number,
                    coalesce(svc.service_names, s.service_name) as service_name,
-                   svc.service_names
+                   svc.service_names,
+                   appt.appointment_number,
+                   appt.appointment_date,
+                   appt.appointment_time
             from payments py
             join patients p on p.id = py.patient_id
+            left join appointments appt on appt.id = py.appointment_id
             left join services s on s.id = py.service_id
             """ + PaymentServicesSelectSql + """
             where py.id = @Id;
