@@ -122,7 +122,12 @@ public class HospitalRepository
 
             alter table payments
             add column if not exists total_amount numeric(12,2) not null default 0,
-            add column if not exists balance_amount numeric(12,2) not null default 0;
+            add column if not exists balance_amount numeric(12,2) not null default 0,
+            add column if not exists appointment_id uuid references appointments(id) on delete set null;
+
+            create unique index if not exists idx_payments_appointment_id
+                on payments(appointment_id)
+                where appointment_id is not null;
 
             create table if not exists payment_services (
                 payment_id uuid not null references payments(id) on delete cascade,
@@ -167,6 +172,66 @@ public class HospitalRepository
             from payments py
             where py.id = i.payment_id
               and i.total_amount <> py.total_amount;
+
+            with appointment_context as (
+                select a.id as appointment_id,
+                       a.patient_id,
+                       coalesce((array_agg(selected_services.service_id) filter (where selected_services.service_id is not null))[1], a.service_id) as service_id,
+                       coalesce(sum(s.price), 0) as services_total,
+                       a.status,
+                       (a.appointment_date + a.appointment_time) as payment_date,
+                       coalesce(nullif(svc.service_names, ''), nullif(a.reason, ''), 'Termin dentar') as service_names
+                from appointments a
+                left join lateral (
+                    select aps.service_id
+                    from appointment_services aps
+                    where aps.appointment_id = a.id
+                    union
+                    select a.service_id
+                    where a.service_id is not null
+                ) selected_services on true
+                left join services s on s.id = selected_services.service_id
+                left join lateral (
+                    select string_agg(s2.service_name, ', ' order by s2.service_name) as service_names
+                    from (
+                        select aps2.service_id
+                        from appointment_services aps2
+                        where aps2.appointment_id = a.id
+                        union
+                        select a.service_id
+                        where a.service_id is not null
+                    ) selected_services2
+                    join services s2 on s2.id = selected_services2.service_id
+                ) svc on true
+                where a.status <> 'Cancelled'
+                group by a.id, a.patient_id, a.service_id, a.status, a.appointment_date, a.appointment_time, a.reason, svc.service_names
+            ),
+            inserted_payments as (
+                insert into payments (patient_id, service_id, appointment_id, amount, total_amount, balance_amount, payment_method, payment_date, status, notes)
+                select ac.patient_id,
+                       ac.service_id,
+                       ac.appointment_id,
+                       0,
+                       ac.services_total,
+                       ac.services_total,
+                       'Cash',
+                       ac.payment_date,
+                       'Pending',
+                       'Automatikisht nga termini: ' || ac.service_names
+                from appointment_context ac
+                where ac.service_id is not null
+                  and ac.services_total > 0
+                  and not exists (
+                      select 1
+                      from payments py
+                      where py.appointment_id = ac.appointment_id
+                  )
+                returning id, appointment_id, total_amount
+            )
+            insert into invoices (payment_id, total_amount, status)
+            select id, total_amount, 'Issued'
+            from inserted_payments
+            on conflict (payment_id) do nothing;
 
             insert into diagnoses (patient_id, doctor_id, appointment_id, disease_name, severity, description, diagnosis_date, treatment_recommendation)
             select a.patient_id,
@@ -1365,6 +1430,7 @@ public class HospitalRepository
         }
 
         await UpsertPlannedVisitForAppointmentAsync(connection, transaction, id, appointment.Status);
+        await UpsertPendingPaymentForAppointmentAsync(connection, transaction, id);
 
         transaction.Commit();
         await AddAuditLogAsync(actorUserId, "appointment created", "appointments", id, appointment.Reason);
@@ -1437,6 +1503,7 @@ public class HospitalRepository
         }
 
         await UpsertPlannedVisitForAppointmentAsync(connection, transaction, appointment.Id, appointment.Status);
+        await UpsertPendingPaymentForAppointmentAsync(connection, transaction, appointment.Id);
 
         transaction.Commit();
         await AddAuditLogAsync(actorUserId, "appointment edited", "appointments", appointment.Id, $"{appointment.AppointmentDate:yyyy-MM-dd} {appointment.AppointmentTime:hh\\:mm}");
@@ -1481,6 +1548,7 @@ public class HospitalRepository
         using var transaction = connection.BeginTransaction();
         await connection.ExecuteAsync("update appointments set status = @Status, updated_at = now() where id = @Id;", new { Id = id, Status = status }, transaction);
         await UpsertPlannedVisitForAppointmentAsync(connection, transaction, id, status);
+        await UpsertPendingPaymentForAppointmentAsync(connection, transaction, id);
         transaction.Commit();
         await AddAuditLogAsync(actorUserId, "appointment status updated", "appointments", id, status);
     }
@@ -1603,6 +1671,127 @@ public class HospitalRepository
             from appointment_context ac
             where not exists (select 1 from updated);
             """, new { AppointmentId = appointmentId }, transaction);
+    }
+
+    private static async Task UpsertPendingPaymentForAppointmentAsync(
+        System.Data.IDbConnection connection,
+        System.Data.IDbTransaction transaction,
+        Guid appointmentId)
+    {
+        var paymentId = await connection.QuerySingleOrDefaultAsync<Guid?>("""
+            with appointment_context as (
+                select a.id as appointment_id,
+                       a.patient_id,
+                       coalesce((array_agg(selected_services.service_id) filter (where selected_services.service_id is not null))[1], a.service_id) as service_id,
+                       coalesce(sum(s.price), 0) as services_total,
+                       a.status,
+                       (a.appointment_date + a.appointment_time) as payment_date,
+                       coalesce(nullif(svc.service_names, ''), nullif(a.reason, ''), 'Termin dentar') as service_names
+                from appointments a
+                left join lateral (
+                    select aps.service_id
+                    from appointment_services aps
+                    where aps.appointment_id = a.id
+                    union
+                    select a.service_id
+                    where a.service_id is not null
+                ) selected_services on true
+                left join services s on s.id = selected_services.service_id
+                left join lateral (
+                    select string_agg(s2.service_name, ', ' order by s2.service_name) as service_names
+                    from (
+                        select aps2.service_id
+                        from appointment_services aps2
+                        where aps2.appointment_id = a.id
+                        union
+                        select a.service_id
+                        where a.service_id is not null
+                    ) selected_services2
+                    join services s2 on s2.id = selected_services2.service_id
+                ) svc on true
+                where a.id = @AppointmentId
+                group by a.id, a.patient_id, a.service_id, a.status, a.appointment_date, a.appointment_time, a.reason, svc.service_names
+            ),
+            updated as (
+                update payments py
+                set patient_id = ac.patient_id,
+                    service_id = ac.service_id,
+                    total_amount = greatest(ac.services_total, py.amount),
+                    balance_amount = greatest(greatest(ac.services_total, py.amount) - py.amount, 0),
+                    payment_date = case when py.amount = 0 then ac.payment_date else py.payment_date end,
+                    status = case
+                        when ac.status = 'Cancelled' and py.amount = 0 then 'Cancelled'
+                        when greatest(ac.services_total, py.amount) - py.amount > 0 then 'Pending'
+                        else 'Paid'
+                    end,
+                    notes = case
+                        when py.notes is null or py.notes = '' or py.notes like 'Automatikisht nga termini:%'
+                            then 'Automatikisht nga termini: ' || ac.service_names
+                        else py.notes
+                    end,
+                    updated_at = now()
+                from appointment_context ac
+                where py.appointment_id = ac.appointment_id
+                  and ac.service_id is not null
+                  and ac.services_total > 0
+                returning py.id
+            ),
+            inserted as (
+                insert into payments (patient_id, service_id, appointment_id, amount, total_amount, balance_amount, payment_method, payment_date, status, notes)
+                select ac.patient_id,
+                       ac.service_id,
+                       ac.appointment_id,
+                       0,
+                       ac.services_total,
+                       ac.services_total,
+                       'Cash',
+                       ac.payment_date,
+                       case when ac.status = 'Cancelled' then 'Cancelled' else 'Pending' end,
+                       'Automatikisht nga termini: ' || ac.service_names
+                from appointment_context ac
+                where ac.service_id is not null
+                  and ac.services_total > 0
+                  and not exists (select 1 from updated)
+                returning id
+            )
+            select id from updated
+            union all
+            select id from inserted
+            limit 1;
+            """, new { AppointmentId = appointmentId }, transaction);
+
+        if (!paymentId.HasValue)
+        {
+            return;
+        }
+
+        await connection.ExecuteAsync("""
+            delete from payment_services
+            where payment_id = @PaymentId;
+
+            insert into payment_services (payment_id, service_id)
+            select @PaymentId, selected_services.service_id
+            from appointments a
+            join lateral (
+                select aps.service_id
+                from appointment_services aps
+                where aps.appointment_id = a.id
+                union
+                select a.service_id
+                where a.service_id is not null
+            ) selected_services on true
+            where a.id = @AppointmentId
+            on conflict (payment_id, service_id) do nothing;
+
+            insert into invoices (payment_id, total_amount, status)
+            select py.id, py.total_amount, case when py.status = 'Cancelled' then 'Cancelled' else 'Issued' end
+            from payments py
+            where py.id = @PaymentId
+            on conflict (payment_id) do update
+            set total_amount = excluded.total_amount,
+                status = excluded.status,
+                updated_at = now();
+            """, new { AppointmentId = appointmentId, PaymentId = paymentId.Value }, transaction);
     }
 
     public async Task<IReadOnlyList<Disease>> GetDiseasesAsync()

@@ -303,6 +303,7 @@ create table if not exists payments (
     id uuid primary key default gen_random_uuid(),
     patient_id uuid not null references patients(id) on delete cascade,
     service_id uuid not null references services(id) on delete restrict,
+    appointment_id uuid references appointments(id) on delete set null,
     amount numeric(12,2) not null check (amount >= 0),
     total_amount numeric(12,2) not null default 0 check (total_amount >= 0),
     balance_amount numeric(12,2) not null default 0 check (balance_amount >= 0),
@@ -316,7 +317,10 @@ create table if not exists payments (
 
 alter table payments
 add column if not exists total_amount numeric(12,2) not null default 0,
-add column if not exists balance_amount numeric(12,2) not null default 0;
+add column if not exists balance_amount numeric(12,2) not null default 0,
+add column if not exists appointment_id uuid references appointments(id) on delete set null;
+
+create unique index if not exists idx_payments_appointment_id on payments(appointment_id) where appointment_id is not null;
 
 create table if not exists payment_services (
     payment_id uuid not null references payments(id) on delete cascade,

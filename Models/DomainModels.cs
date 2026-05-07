@@ -482,6 +482,8 @@ public class Payment : EntityBase
     [Required]
     public Guid ServiceId { get; set; }
 
+    public Guid? AppointmentId { get; set; }
+
     [Display(Name = "Paid amount")]
     [Range(0, 1000000)]
     public decimal Amount { get; set; }
