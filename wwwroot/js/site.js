@@ -300,6 +300,14 @@
     setInterval(checkLiveVersion, 3000);
   }
 
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {
+        // The app still works normally if PWA registration is blocked by the browser.
+      });
+    });
+  }
+
   document.querySelectorAll("a, button[type='submit']").forEach((el) => {
     el.addEventListener("click", () => {
       if (!el.closest(".no-loading")) {

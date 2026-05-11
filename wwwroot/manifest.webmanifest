@@ -1,0 +1,57 @@
+{
+  "name": "Vlera Dent",
+  "short_name": "Vlera Dent",
+  "description": "Dental clinic management app for patients, appointments, payments, and services.",
+  "id": "/",
+  "start_url": "/Auth/Login",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#f4fbff",
+  "theme_color": "#0797d2",
+  "categories": ["medical", "productivity", "business"],
+  "icons": [
+    {
+      "src": "/img/vlera-dent-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/vlera-dent-app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/img/vlera-dent-app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Regjistro pacient",
+      "short_name": "Pacient",
+      "description": "Regjistro pacient te ri",
+      "url": "/Receptionist/RegisterPatient",
+      "icons": [{ "src": "/img/vlera-dent-app-icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Terminet",
+      "short_name": "Terminet",
+      "description": "Shiko terminet",
+      "url": "/Appointments",
+      "icons": [{ "src": "/img/vlera-dent-app-icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Pagesat",
+      "short_name": "Pagesat",
+      "description": "Shiko pagesat",
+      "url": "/Payments",
+      "icons": [{ "src": "/img/vlera-dent-app-icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
