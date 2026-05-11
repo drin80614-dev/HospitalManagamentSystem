@@ -10,3 +10,4 @@ Shenim:
 - Duhet internet.
 - Duhet Microsoft Edge ose Google Chrome.
 - Per telefon, hape linkun ne Chrome/Safari dhe perdor Add to Home Screen.
+- Linku online: https://hospitalmanagamentsystem.onrender.com/Auth/Login

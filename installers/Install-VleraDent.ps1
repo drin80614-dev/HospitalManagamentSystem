@@ -1,5 +1,5 @@
 param(
-    [string]$AppUrl = "https://hospitalmanagmentsystem.onrender.com/Auth/Login"
+    [string]$AppUrl = "https://hospitalmanagamentsystem.onrender.com/Auth/Login"
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,6 +30,11 @@ $desktopPath = [Environment]::GetFolderPath("Desktop")
 $startMenuPath = Join-Path ([Environment]::GetFolderPath("Programs")) "Vlera Dent"
 $shortcutArgs = "--user-data-dir=""$profileDir"" --app=""$AppUrl"""
 
+Get-Process msedge,chrome -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -like "*VleraDent*" -or $_.CommandLine -like "*hospitalmanagmentsystem*" } |
+    Stop-Process -Force -ErrorAction SilentlyContinue
+
+Remove-Item -LiteralPath $profileDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
 New-Item -ItemType Directory -Force -Path $startMenuPath | Out-Null
