@@ -37,7 +37,9 @@ public class NpgsqlConnectionFactory : IDbConnectionFactory
                     Database = "postgres",
                     Username = "postgres",
                     Password = dbPassword,
-                    SslMode = SslMode.Require
+                    SslMode = SslMode.Require,
+                    Timeout = 15,
+                    CommandTimeout = 30
                 };
 
                 connectionString = builder.ConnectionString;
@@ -59,7 +61,7 @@ public class NpgsqlConnectionFactory : IDbConnectionFactory
         if (!trimmed.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) &&
             !trimmed.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
         {
-            return trimmed;
+            return WithSafeTimeouts(trimmed);
         }
 
         var uri = new Uri(trimmed);
@@ -71,7 +73,9 @@ public class NpgsqlConnectionFactory : IDbConnectionFactory
             Database = uri.AbsolutePath.TrimStart('/'),
             Username = Uri.UnescapeDataString(userInfo.ElementAtOrDefault(0) ?? string.Empty),
             Password = Uri.UnescapeDataString(userInfo.ElementAtOrDefault(1) ?? string.Empty),
-            SslMode = SslMode.Require
+            SslMode = SslMode.Require,
+            Timeout = 15,
+            CommandTimeout = 30
         };
 
         foreach (var part in uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
@@ -85,6 +89,22 @@ public class NpgsqlConnectionFactory : IDbConnectionFactory
             {
                 builder.SslMode = sslMode;
             }
+        }
+
+        return builder.ConnectionString;
+    }
+
+    private static string WithSafeTimeouts(string connectionString)
+    {
+        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        if (builder.Timeout <= 0)
+        {
+            builder.Timeout = 15;
+        }
+
+        if (builder.CommandTimeout <= 0)
+        {
+            builder.CommandTimeout = 30;
         }
 
         return builder.ConnectionString;

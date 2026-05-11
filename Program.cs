@@ -48,19 +48,6 @@ builder.Services.AddControllersWithViews(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    try
-    {
-        var repository = scope.ServiceProvider.GetRequiredService<HospitalRepository>();
-        await repository.EnsureFeatureSchemaAsync();
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogError(ex, "Startup database feature migration failed. The app will continue running with safe dashboard fallbacks.");
-    }
-}
-
 // Configure the HTTP request pipeline.
 var isRenderDeployment = !string.IsNullOrWhiteSpace(renderPort);
 if (!app.Environment.IsDevelopment() || isRenderDeployment)
@@ -108,5 +95,23 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    _ = Task.Run(async () =>
+    {
+        using var scope = app.Services.CreateScope();
+
+        try
+        {
+            var repository = scope.ServiceProvider.GetRequiredService<HospitalRepository>();
+            await repository.EnsureFeatureSchemaAsync();
+            app.Logger.LogInformation("Background database feature migration completed.");
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogError(ex, "Background database feature migration failed. The app will continue running with safe fallbacks.");
+        }
+    });
+});
 
 app.Run();
