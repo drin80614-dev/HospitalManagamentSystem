@@ -1,7 +1,5 @@
-const CACHE_NAME = "vlera-dent-static-v1";
+const CACHE_NAME = "vlera-dent-static-v2";
 const STATIC_ASSETS = [
-  "/",
-  "/Auth/Login",
   "/manifest.webmanifest",
   "/css/site.css",
   "/js/site.js",
@@ -17,7 +15,7 @@ const STATIC_ASSETS = [
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then((cache) => Promise.allSettled(STATIC_ASSETS.map((asset) => cache.add(asset))))
       .then(() => self.skipWaiting())
   );
 });
