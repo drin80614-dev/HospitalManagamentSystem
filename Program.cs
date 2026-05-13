@@ -1,4 +1,3 @@
-using Dapper;
 using HospitalManagamentSystem.Data;
 using HospitalManagamentSystem.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -7,13 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 var renderPort = Environment.GetEnvironmentVariable("PORT");
 
-DefaultTypeMap.MatchNamesWithUnderscores = true;
-SqlMapper.AddTypeHandler(new DapperDateTimeHandler());
-SqlMapper.AddTypeHandler(new DapperTimeSpanHandler());
-
-builder.Services.Configure<SupabaseOptions>(builder.Configuration.GetSection("Supabase"));
-builder.Services.AddScoped<IDbConnectionFactory, NpgsqlConnectionFactory>();
-builder.Services.AddScoped<HospitalRepository>();
+builder.Services.Configure<CloudflareD1Options>(builder.Configuration.GetSection("CloudflareD1"));
+builder.Services.AddHttpClient<HospitalRepository>();
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
 builder.Services.AddAntiforgery(options =>
 {

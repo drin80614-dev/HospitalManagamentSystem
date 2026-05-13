@@ -83,8 +83,8 @@ public class AuthController : Controller
             return View(model);
         }
 
-        var user = await _repository.GetUserByLoginAsync(model.Login);
-        if (user is null || !_passwordService.VerifyPassword(model.Password, user.PasswordHash))
+        var user = await _repository.AuthenticateAsync(model.Login, model.Password);
+        if (user is null)
         {
             ModelState.AddModelError(string.Empty, "Invalid username/email or password.");
             return View(model);

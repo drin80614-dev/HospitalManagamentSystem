@@ -1,73 +1,107 @@
 # Vlera Dent Management System
 
-Vlera Dent is a modern ASP.NET Core MVC dental clinic management web application for admin, dentist, and reception staff. It includes role-based authentication, dashboards, patient intake, clinical history, visits, diagnoses, prescriptions, lab requests, rooms, appointments, billing, invoices, global search, audit logs, and admin reports.
+Vlera Dent is a modern ASP.NET Core MVC dental clinic management system for admin, dentist, and receptionist workflows. The persistent database backend is now Cloudflare D1 through a Cloudflare Worker API.
 
 ## Technologies
 
 - ASP.NET Core MVC, C#, .NET 10
 - Bootstrap 5, Bootstrap Icons, Chart.js, SweetAlert2
-- Supabase PostgreSQL via Npgsql and Dapper
-- Cookie authentication with PBKDF2 password hashing
-- Server-side validation and role-based authorization
+- Cloudflare Workers API
+- Cloudflare D1 SQLite database
+- Cookie authentication in the MVC app
+- D1 prepared statements, validation, and audit logs
 
-## Supabase Configuration
+## Cloudflare D1 Setup
 
-Project:
-
-- URL: `https://qlrwhcypmpegbbakqqxd.supabase.co`
-- Project ID: `qlrwhcypmpegbbakqqxd`
-
-Do not commit real keys or database passwords. Use environment variables or user secrets. This app is configured to save data in Supabase PostgreSQL, not in a local database.
-
-Required application configuration:
-
-```json
-"Supabase": {
-  "Url": "https://qlrwhcypmpegbbakqqxd.supabase.co",
-  "ProjectId": "qlrwhcypmpegbbakqqxd",
-  "AnonKey": "",
-  "ServiceRoleKey": "",
-  "DbPassword": "",
-  "PostgresConnectionString": ""
-}
-```
-
-The MVC app connects to Supabase PostgreSQL with a server-side connection. URL and Project ID identify the Supabase project, but PostgreSQL still requires the database password or a full connection string.
-
-Option A, easiest with the provided Project ID:
-
-```powershell
-$env:SUPABASE_DB_PASSWORD="YOUR-SUPABASE-DATABASE-PASSWORD"
-```
-
-The app will build this hosted Supabase connection automatically:
+1. In Cloudflare Dashboard, open **Storage & databases**.
+2. Open **D1 SQL Database**.
+3. Create a database named:
 
 ```text
-Host=db.qlrwhcypmpegbbakqqxd.supabase.co;Port=5432;Database=postgres;Username=postgres;SSL Mode=Require
+hospital_management_db
 ```
 
-Option B, provide the full Supabase connection string:
+4. Copy the D1 database ID.
+5. Put it in [`wrangler.toml`](wrangler.toml):
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "hospital_management_db"
+database_id = "1bc36565-9270-4115-b32e-8512be704177"
+```
+
+## Run D1 Migrations
+
+Install Wrangler if needed:
 
 ```powershell
-$env:SUPABASE_DB_CONNECTION="Host=db.qlrwhcypmpegbbakqqxd.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=YOUR-PASSWORD;SSL Mode=Require;Trust Server Certificate=true"
+npm.cmd install -g wrangler
 ```
 
-or:
+Login to Cloudflare CLI before remote commands:
 
 ```powershell
-dotnet user-secrets set "Supabase:DbPassword" "YOUR-SUPABASE-DATABASE-PASSWORD"
+npx.cmd wrangler login
 ```
 
-## Create Database Tables
+Create tables locally:
 
-1. Open Supabase Dashboard.
-2. Go to SQL Editor.
-3. Run [`scripts/supabase_schema.sql`](scripts/supabase_schema.sql).
-4. Confirm tables were created in the `public` schema.
+```powershell
+wrangler d1 execute hospital_management_db --local --file=./migrations/0001_init.sql
+wrangler d1 execute hospital_management_db --local --file=./seed.sql
+```
 
-The script creates all required tables, generated numbers, triggers, indexes, foreign keys, and realistic seed data.
+Create tables in Cloudflare production:
 
-## Run Locally
+```powershell
+wrangler d1 execute hospital_management_db --remote --file=./migrations/0001_init.sql
+wrangler d1 execute hospital_management_db --remote --file=./seed.sql
+```
+
+## Run Cloudflare Worker API Locally
+
+```powershell
+wrangler dev
+```
+
+Local API URL:
+
+```text
+http://127.0.0.1:8787
+```
+
+## Deploy Cloudflare Worker API
+
+```powershell
+wrangler deploy
+```
+
+After deploy, copy the Worker URL and set it in the ASP.NET app:
+
+```powershell
+$env:D1_API_BASE_URL="https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev"
+```
+
+Optional, protect non-login API endpoints with a token:
+
+```powershell
+wrangler secret put D1_API_TOKEN
+$env:D1_API_TOKEN="THE-SAME-TOKEN"
+```
+
+On Render, add this environment variable:
+
+```text
+D1_API_BASE_URL=https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
+D1_API_TOKEN=THE-SAME-TOKEN
+```
+
+No legacy database URL, database keys, or database password is required in the ASP.NET app.
+
+## Run ASP.NET App Locally
+
+Start the Worker first, then run:
 
 ```powershell
 dotnet restore
@@ -75,11 +109,11 @@ dotnet build
 dotnet run
 ```
 
-Open the URL printed by `dotnet run`, usually `https://localhost:7xxx` or `http://localhost:5xxx`.
+Open the URL printed by `dotnet run`, usually `http://localhost:5117`.
 
 ## Default Login Users
 
-After running the SQL seed:
+After running `seed.sql`:
 
 | Role | Email | Password |
 | --- | --- | --- |
@@ -87,41 +121,59 @@ After running the SQL seed:
 | Dentist | `vlorentina.sahiti@vleradent.com` | `Doctor123!` |
 | Receptionist | `reception@vleradent.com` | `Reception123!` |
 
+## D1 API Endpoints
+
+- `POST /api/auth/login`
+- `GET /api/patients/search?q=`
+- `POST /api/patients`
+- `GET /api/patients/:id`
+- `GET /api/patients/:id/history`
+- `POST /api/appointments`
+- `GET /api/appointments`
+- `PATCH /api/appointments/:id`
+- `POST /api/visits`
+- `POST /api/prescriptions`
+- `GET /api/prescriptions/pending-print`
+- `PATCH /api/prescriptions/:id/printed`
+- `POST /api/payments`
+- `GET /api/payments/pending-print`
+- `PATCH /api/payments/:id/printed`
+- `GET /api/rooms`
+- `POST /api/hospitalizations`
+- `GET /api/reports/daily`
+
 ## Project Structure
 
 ```text
-Controllers/     MVC controllers and role portals
-Data/            Supabase options, Npgsql connection factory, Dapper repository
-Models/          Hospital domain entities
-Services/        Password hashing service
-ViewModels/      Dashboard, workflow, auth, search, and report models
-Views/           Bootstrap MVC views and shared layout
-wwwroot/         CSS, JavaScript, Bootstrap assets
-scripts/         Supabase PostgreSQL schema and seed SQL
+Controllers/           MVC controllers and role portals
+Data/                  Cloudflare D1 API client for ASP.NET
+Models/                Clinic domain entities
+Services/              Password hashing service for MVC account tools
+ViewModels/            Dashboard, workflow, auth, search, and report models
+Views/                 Bootstrap MVC views and shared layout
+wwwroot/               CSS, JavaScript, Bootstrap assets, PWA files
+workers/d1-api/        Cloudflare Worker API using D1 prepared statements
+migrations/            D1 SQLite-compatible migrations
+schema.sql             Full D1 schema
+seed.sql               Starter Vlera Dent data
+wrangler.toml          Cloudflare Worker and D1 binding config
 ```
 
 ## Main Features
 
-- Admin, Dentist, and Receptionist role permissions
-- Login, logout, access denied, secure cookie auth
-- Role-aware dashboard with metrics, charts, recent activity, and quick actions
-- Patient CRUD, search, filters, pagination, profile tabs, and print profile
-- Dentist workflows: assigned patients, visits, prescriptions, lab tests
-- Reception workflows: patient registration, appointment creation, payments, receipts
-- Services, billing, automatic invoice numbers, print-friendly receipts
-- Reports with date filters, print support, and CSV export
-- Global search across patients, dentists, and appointments
-- Audit logs for important patient, prescription, and payment actions
-- Forgot-password reset links for local/dev recovery and user profile password changes
-- Lab test work queue with result/status updates and completion tracking
-- Dental inventory with low-stock indicators, expiry dates, suppliers, and admin editing
-- Notifications center for operational alerts
-- Weekly appointment calendar with doctor filtering and active-slot conflict prevention
+- Admin, dentist, and receptionist role workflows
+- Patient registration, search, details, and history
+- Appointment creation with one or more services
+- Appointment services automatically create visit history and pending payment rows
+- Prescriptions and payments pending print queue
+- Dental services, invoices, partial payments, balances, and status tracking
+- Rooms, beds, and hospitalization support in D1
+- Daily report endpoint
+- Audit logs for patient creation, visits, prescriptions, payments, print actions, and appointments
 
 ## Security Notes
 
-- Passwords are hashed with PBKDF2-SHA256.
-- Sensitive patient operations are server-side and role-checked.
-- No Supabase secrets are hardcoded.
-- Use HTTPS and rotate any exposed development credentials before production.
-- Consider adding Supabase Row Level Security policies if the database is accessed by any client other than this server application.
+- Do not put Cloudflare API tokens in frontend code.
+- D1 queries are executed only inside the Cloudflare Worker with prepared statements.
+- The frontend/MVC app calls API endpoints; it does not connect directly to D1.
+- Keep `D1_API_BASE_URL` in environment variables for production.

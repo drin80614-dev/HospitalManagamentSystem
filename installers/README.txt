@@ -6,7 +6,7 @@ Si instalohet:
 3. Pasi te kryhet, Vlera Dent del si ikone ne Desktop dhe Start Menu.
 
 Shenim:
-- Aplikacioni punon online dhe hap sistemin ne Render/Supabase.
+- Aplikacioni punon online dhe ruan te dhenat ne Cloudflare D1.
 - Duhet internet.
 - Duhet Microsoft Edge ose Google Chrome.
 - Per telefon, hape linkun ne Chrome/Safari dhe perdor Add to Home Screen.

@@ -11,16 +11,16 @@
 </div>
 
 <div class="glass-panel p-4">
-    <h5 class="fw-bold">Supabase configuration</h5>
-    <p class="text-soft">Set real keys and the database connection string using environment variables before running in production.</p>
+    <h5 class="fw-bold">Cloudflare D1 configuration</h5>
+    <p class="text-soft">Set the Worker API URL with environment variables before running in production. Database access happens only inside Cloudflare Worker.</p>
     <div class="table-responsive">
         <table class="table">
             <thead><tr><th>Setting</th><th>Recommended source</th></tr></thead>
             <tbody>
-                <tr><td>Supabase URL</td><td><code>Supabase:Url</code></td></tr>
-                <tr><td>Anon key</td><td><code>Supabase__AnonKey</code></td></tr>
-                <tr><td>Service role key</td><td><code>Supabase__ServiceRoleKey</code></td></tr>
-                <tr><td>PostgreSQL connection</td><td><code>SUPABASE_DB_CONNECTION</code></td></tr>
+                <tr><td>D1 Worker API</td><td><code>D1_API_BASE_URL</code></td></tr>
+                <tr><td>Optional API token</td><td><code>D1_API_TOKEN</code></td></tr>
+                <tr><td>D1 database binding</td><td><code>DB</code> in <code>wrangler.toml</code></td></tr>
+                <tr><td>D1 database ID</td><td><code>1bc36565-9270-4115-b32e-8512be704177</code></td></tr>
             </tbody>
         </table>
     </div>
