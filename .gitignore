@@ -10,3 +10,4 @@ logs/
 *.log
 publish/
 .wrangler/
+tools/flutter/

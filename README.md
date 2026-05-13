@@ -5,6 +5,7 @@ Vlera Dent is a modern ASP.NET Core MVC dental clinic management system for admi
 ## Technologies
 
 - ASP.NET Core MVC, C#, .NET 10
+- Flutter cross-platform app for Android, iOS, and Windows
 - Bootstrap 5, Bootstrap Icons, Chart.js, SweetAlert2
 - Cloudflare Workers API
 - Cloudflare D1 SQLite database
@@ -117,6 +118,112 @@ dotnet run
 
 Open the URL printed by `dotnet run`, usually `http://localhost:5117`.
 
+## Flutter App
+
+The native Flutter app lives in:
+
+```text
+vlera_dent_app/
+```
+
+It is not a PWA. It is a real Flutter application for Android, iOS, and Windows. It preserves the existing Vlera Dent workflows by loading the Render-hosted backend inside a native WebView shell. The data path remains:
+
+```text
+Flutter App -> Render Backend -> Cloudflare D1
+```
+
+The app does not connect directly to Cloudflare D1.
+
+Default backend URL:
+
+```text
+https://hospitalmanagamentsystem.onrender.com/Auth/Login
+```
+
+Run locally on an available device:
+
+```powershell
+cd vlera_dent_app
+..\tools\flutter\bin\flutter.bat pub get
+..\tools\flutter\bin\flutter.bat run --dart-define BACKEND_URL=https://hospitalmanagamentsystem.onrender.com/Auth/Login
+```
+
+Build Android APK:
+
+```powershell
+cd vlera_dent_app
+..\tools\flutter\bin\flutter.bat build apk --release --dart-define BACKEND_URL=https://hospitalmanagamentsystem.onrender.com/Auth/Login
+```
+
+Or use the helper script:
+
+```powershell
+cd vlera_dent_app
+.\installers\Build-AndroidApk.ps1
+```
+
+Output:
+
+```text
+vlera_dent_app/build/app/outputs/flutter-apk/app-release.apk
+```
+
+Build Android App Bundle:
+
+```powershell
+cd vlera_dent_app
+..\tools\flutter\bin\flutter.bat build appbundle --release --dart-define BACKEND_URL=https://hospitalmanagamentsystem.onrender.com/Auth/Login
+```
+
+Build Windows desktop package:
+
+```powershell
+cd vlera_dent_app
+.\installers\Build-WindowsPackage.ps1
+```
+
+Output:
+
+```text
+vlera_dent_app/build/installer/VleraDent-Windows.zip
+```
+
+Build iOS on macOS:
+
+```bash
+cd vlera_dent_app
+flutter build ios --release --dart-define BACKEND_URL=https://hospitalmanagamentsystem.onrender.com/Auth/Login
+```
+
+Notes:
+
+- Android minimum version is Android 8.0.
+- iOS minimum deployment target is iOS 13.
+- Windows supports Windows 10 and Windows 11.
+- On Windows, enable Windows Developer Mode if Flutter asks for symlink support.
+
+## Free Direct Installation
+
+You do not need to pay Google Play, Apple App Store, or Microsoft Store fees if the app is only distributed directly.
+
+Android free install:
+
+1. Build `app-release.apk`.
+2. Send the APK to the phone.
+3. On the phone, allow **Install unknown apps** for the app used to open the APK.
+4. Open the APK and install **Vlera Dent**.
+
+Windows free install:
+
+1. Build the Windows package with `.\installers\Build-WindowsPackage.ps1`.
+2. Send `VleraDent-Windows.zip` to the laptop.
+3. Extract the zip.
+4. Run `VleraDent.exe`.
+
+iPhone/iPad note:
+
+Apple does not allow normal permanent direct installation like Android without an Apple Developer/App Store/TestFlight flow. A free Apple ID can be used only for local development installs from Xcode and usually expires after a short period, so it is not recommended for a clinic production app.
+
 ## Default Login Users
 
 After running `seed.sql`:
@@ -158,6 +265,7 @@ Services/              Password hashing service for MVC account tools
 ViewModels/            Dashboard, workflow, auth, search, and report models
 Views/                 Bootstrap MVC views and shared layout
 wwwroot/               CSS, JavaScript, Bootstrap assets, PWA files
+vlera_dent_app/        Flutter Android, iOS, and Windows application
 workers/d1-api/        Cloudflare Worker API using D1 prepared statements
 cloudflare-pages-api/  Deployed Pages Functions API bundle
 migrations/            D1 SQLite-compatible migrations
