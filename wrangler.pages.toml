@@ -1,0 +1,8 @@
+﻿name = "vlera-dent-d1-api"
+pages_build_output_dir = "cloudflare-pages-api"
+compatibility_date = "2026-05-13"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hospital_management_db"
+database_id = "1bc36565-9270-4115-b32e-8512be704177"

@@ -77,10 +77,16 @@ http://127.0.0.1:8787
 wrangler deploy
 ```
 
-After deploy, copy the Worker URL and set it in the ASP.NET app:
+The D1 API is deployed as Cloudflare Pages Functions here:
+
+```text
+https://vlera-dent-d1-api.pages.dev
+```
+
+Set this URL in the ASP.NET app:
 
 ```powershell
-$env:D1_API_BASE_URL="https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev"
+$env:D1_API_BASE_URL="https://vlera-dent-d1-api.pages.dev"
 ```
 
 Optional, protect non-login API endpoints with a token:
@@ -93,7 +99,7 @@ $env:D1_API_TOKEN="THE-SAME-TOKEN"
 On Render, add this environment variable:
 
 ```text
-D1_API_BASE_URL=https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
+D1_API_BASE_URL=https://vlera-dent-d1-api.pages.dev
 D1_API_TOKEN=THE-SAME-TOKEN
 ```
 
@@ -153,6 +159,7 @@ ViewModels/            Dashboard, workflow, auth, search, and report models
 Views/                 Bootstrap MVC views and shared layout
 wwwroot/               CSS, JavaScript, Bootstrap assets, PWA files
 workers/d1-api/        Cloudflare Worker API using D1 prepared statements
+cloudflare-pages-api/  Deployed Pages Functions API bundle
 migrations/            D1 SQLite-compatible migrations
 schema.sql             Full D1 schema
 seed.sql               Starter Vlera Dent data
