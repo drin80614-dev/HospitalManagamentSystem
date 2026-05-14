@@ -1,6 +1,6 @@
 param(
     [string]$BackendUrl = "https://vlera-dent-frontend.drin80614.workers.dev/Auth/Login",
-    [string]$Flutter = "..\tools\flutter\bin\flutter.bat"
+    [string]$Flutter = "tools\flutter\bin\flutter.bat"
 )
 
 $ErrorActionPreference = "Stop"
