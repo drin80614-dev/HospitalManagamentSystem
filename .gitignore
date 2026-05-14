@@ -11,3 +11,4 @@ logs/
 publish/
 .wrangler/
 tools/flutter/
+installers/VleraDent-Windows-Exe/
