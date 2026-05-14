@@ -5,4 +5,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="windows_desktop_app\**\*.cs" />
+    <EmbeddedResource Remove="windows_desktop_app\**\*" />
+    <None Remove="windows_desktop_app\**\*" />
+  </ItemGroup>
 </Project>

@@ -218,10 +218,22 @@ function toCamel(row) {
   const converted = {};
   for (const [key, value] of Object.entries(row || {})) {
     const camel = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-    converted[camel] = value;
+    converted[camel] = key.endsWith("_at") ? toIsoTimestamp(value) : value;
   }
 
   return converted;
+}
+
+function toIsoTimestamp(value) {
+  if (!value || typeof value !== "string") {
+    return value;
+  }
+
+  if (value.includes("T")) {
+    return value;
+  }
+
+  return `${value.replace(" ", "T")}Z`;
 }
 
 async function all(statement) {
