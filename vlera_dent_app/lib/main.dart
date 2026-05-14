@@ -11,7 +11,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_windows/webview_windows.dart' as windows;
 
 const String defaultBackendUrl =
-    'https://hospitalmanagamentsystem.onrender.com/Auth/Login';
+    'https://vlera-dent-frontend.drin80614.workers.dev/Auth/Login';
 
 const String backendUrl = String.fromEnvironment(
   'BACKEND_URL',

@@ -1,0 +1,5 @@
+name = "vlera-dent-frontend"
+main = "workers/frontend-proxy/src/index.js"
+compatibility_date = "2026-05-13"
+workers_dev = true
+preview_urls = true

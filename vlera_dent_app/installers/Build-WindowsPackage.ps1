@@ -1,5 +1,5 @@
 param(
-    [string]$BackendUrl = "https://hospitalmanagamentsystem.onrender.com/Auth/Login",
+    [string]$BackendUrl = "https://vlera-dent-frontend.drin80614.workers.dev/Auth/Login",
     [string]$Flutter = "..\tools\flutter\bin\flutter.bat"
 )
 

@@ -134,10 +134,32 @@ Flutter App -> Render Backend -> Cloudflare D1
 
 The app does not connect directly to Cloudflare D1.
 
+## Cloudflare Frontend
+
+The public frontend can be hosted through Cloudflare while the ASP.NET backend stays on Render:
+
+```text
+Browser / Flutter App -> Cloudflare Frontend Worker -> Render ASP.NET Backend -> Cloudflare D1 API -> Cloudflare D1
+```
+
+Cloudflare frontend Worker config:
+
+```text
+wrangler.frontend.toml
+```
+
+Deploy the frontend Worker:
+
+```powershell
+npx.cmd wrangler deploy -c wrangler.frontend.toml
+```
+
+The Worker proxies all web traffic to the Render backend and rewrites redirects back to the Cloudflare frontend URL. This keeps the current MVC design and workflows without rebuilding the UI as a separate static frontend.
+
 Default backend URL:
 
 ```text
-https://hospitalmanagamentsystem.onrender.com/Auth/Login
+https://vlera-dent-frontend.drin80614.workers.dev/Auth/Login
 ```
 
 Run locally on an available device:
@@ -145,14 +167,14 @@ Run locally on an available device:
 ```powershell
 cd vlera_dent_app
 ..\tools\flutter\bin\flutter.bat pub get
-..\tools\flutter\bin\flutter.bat run --dart-define BACKEND_URL=https://hospitalmanagamentsystem.onrender.com/Auth/Login
+..\tools\flutter\bin\flutter.bat run --dart-define BACKEND_URL=https://vlera-dent-frontend.drin80614.workers.dev/Auth/Login
 ```
 
 Build Android APK:
 
 ```powershell
 cd vlera_dent_app
-..\tools\flutter\bin\flutter.bat build apk --release --dart-define BACKEND_URL=https://hospitalmanagamentsystem.onrender.com/Auth/Login
+..\tools\flutter\bin\flutter.bat build apk --release --dart-define BACKEND_URL=https://vlera-dent-frontend.drin80614.workers.dev/Auth/Login
 ```
 
 Or use the helper script:
@@ -172,7 +194,7 @@ Build Android App Bundle:
 
 ```powershell
 cd vlera_dent_app
-..\tools\flutter\bin\flutter.bat build appbundle --release --dart-define BACKEND_URL=https://hospitalmanagamentsystem.onrender.com/Auth/Login
+..\tools\flutter\bin\flutter.bat build appbundle --release --dart-define BACKEND_URL=https://vlera-dent-frontend.drin80614.workers.dev/Auth/Login
 ```
 
 Build Windows desktop package:
@@ -192,7 +214,7 @@ Build iOS on macOS:
 
 ```bash
 cd vlera_dent_app
-flutter build ios --release --dart-define BACKEND_URL=https://hospitalmanagamentsystem.onrender.com/Auth/Login
+flutter build ios --release --dart-define BACKEND_URL=https://vlera-dent-frontend.drin80614.workers.dev/Auth/Login
 ```
 
 Notes:
