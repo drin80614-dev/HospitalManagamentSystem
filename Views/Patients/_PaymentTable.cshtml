@@ -1,8 +1,42 @@
 @model IReadOnlyList<Payment>
 @{
-    var totalAmount = Model.Sum(item => item.TotalAmount);
-    var paidAmount = Model.Sum(item => item.Amount);
-    var balanceAmount = Model.Sum(item => item.BalanceAmount);
+    var groupedPayments = Model
+        .GroupBy(item => item.AppointmentId.HasValue ? $"appointment-{item.AppointmentId}" : $"payment-{item.Id}")
+        .Select(group =>
+        {
+            var first = group
+                .OrderBy(item => item.PaymentDate)
+                .First();
+            var serviceNames = group
+                .SelectMany(item => (item.ServiceNames ?? item.ServiceName ?? "Sherbim")
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var total = group.Sum(item => item.TotalAmount);
+            var paid = group.Sum(item => item.Amount);
+            var balance = group.Sum(item => item.BalanceAmount);
+            var isCancelled = group.Any(item => item.Status == "Cancelled");
+
+            return new
+            {
+                Payment = first,
+                Services = serviceNames,
+                Total = total,
+                Paid = paid,
+                Balance = balance,
+                StatusLabel = isCancelled ? "Anuluar" : balance > 0 ? "E paguar pjeserisht" : "E paguar e gjitha",
+                StatusCss = isCancelled ? "Cancelled" : balance > 0 ? "Pending" : "Paid",
+                Count = group.Count()
+            };
+        })
+        .OrderByDescending(item => item.Payment.AppointmentDate ?? item.Payment.PaymentDate)
+        .ThenByDescending(item => item.Payment.PaymentDate)
+        .ToList();
+
+    var totalAmount = groupedPayments.Sum(item => item.Total);
+    var paidAmount = groupedPayments.Sum(item => item.Paid);
+    var balanceAmount = groupedPayments.Sum(item => item.Balance);
 }
 <div class="row g-3 mb-3">
     <div class="col-md-4">
@@ -19,39 +53,53 @@
     <table class="table">
         <thead><tr><th>Termini / sherbimet</th><th>Total</th><th>Paid</th><th>Remaining</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
         <tbody>
-        @foreach (var item in Model)
+        @foreach (var item in groupedPayments)
         {
             <tr>
                 <td>
-                    <div class="fw-semibold">@item.ServiceName</div>
-                    @if (!string.IsNullOrWhiteSpace(item.AppointmentNumber))
+                    @if (!string.IsNullOrWhiteSpace(item.Payment.AppointmentNumber))
                     {
-                        <div class="text-soft small">
-                            Termin @item.AppointmentNumber -
-                            @item.AppointmentDate?.ToString("dd MMM yyyy")
-                            @item.AppointmentTime?.ToString(@"hh\:mm")
+                        <div class="fw-semibold">
+                            Termin @item.Payment.AppointmentNumber
+                        </div>
+                        <div class="text-soft small mb-1">
+                            @item.Payment.AppointmentDate?.ToString("dd MMM yyyy")
+                            @item.Payment.AppointmentTime?.ToString(@"hh\:mm")
                         </div>
                     }
                     else
                     {
-                        <div class="text-soft small">Pagese manuale - @item.PaymentDate.ToString("dd MMM yyyy")</div>
+                        <div class="fw-semibold">Pagese manuale</div>
+                        <div class="text-soft small mb-1">@item.Payment.PaymentDate.ToString("dd MMM yyyy")</div>
+                    }
+
+                    <div class="d-flex flex-wrap gap-1">
+                        @foreach (var service in item.Services)
+                        {
+                            <span class="badge text-bg-light border">@service</span>
+                        }
+                    </div>
+
+                    @if (item.Count > 1)
+                    {
+                        <div class="text-soft small mt-1">@item.Count pagesa te bashkuara per kete termin</div>
                     }
                 </td>
-                <td>@item.TotalAmount.ToString("C")</td>
-                <td>@item.Amount.ToString("C")</td>
-                <td class="@(item.BalanceAmount > 0 ? "text-danger fw-bold" : "text-success fw-semibold")">@item.BalanceAmount.ToString("C")</td>
-                <td><span class="badge-soft status-@item.PaymentStatusCss">@item.PaymentStatusLabel</span></td>
+                <td>@item.Total.ToString("C")</td>
+                <td>@item.Paid.ToString("C")</td>
+                <td class="@(item.Balance > 0 ? "text-danger fw-bold" : "text-success fw-semibold")">@item.Balance.ToString("C")</td>
+                <td><span class="badge-soft status-@item.StatusCss">@item.StatusLabel</span></td>
                 <td class="text-end">
                     @if (User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.Receptionist))
                     {
-                        <a class="btn btn-sm btn-outline-primary" asp-controller="Payments" asp-action="Edit" asp-route-id="@item.Id">
+                        <a class="btn btn-sm btn-outline-primary" asp-controller="Payments" asp-action="Edit" asp-route-id="@item.Payment.Id">
                             <i class="bi bi-pencil-square me-1"></i>Edit
                         </a>
                     }
                 </td>
             </tr>
         }
-        @if (!Model.Any()) { <tr><td colspan="6" class="text-soft text-center py-4">No payments yet.</td></tr> }
+        @if (!groupedPayments.Any()) { <tr><td colspan="6" class="text-soft text-center py-4">No payments yet.</td></tr> }
         </tbody>
     </table>
 </div>
