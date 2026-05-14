@@ -1,15 +1,16 @@
 @model ErrorViewModel
 @{
-    ViewData["Title"] = "Something went wrong";
+    ViewData["Title"] = Model.Title;
 }
 
 <div class="empty-state">
     <i class="bi bi-shield-exclamation display-4 text-primary"></i>
-    <h1 class="fw-bold mt-3">Something went wrong</h1>
-    <p class="text-soft mb-4">The page could not be loaded right now, but the system is still running. Please go back to the dashboard and try again.</p>
+    <div class="page-kicker mt-3">Kodi @Model.StatusCode</div>
+    <h1 class="fw-bold mt-2">@Model.Title</h1>
+    <p class="text-soft mb-4">@Model.Message</p>
     <div class="quick-actions justify-content-center">
-        <a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-grid me-2"></i>Dashboard</a>
-        <a class="btn btn-outline-primary" asp-controller="Patients" asp-action="Index"><i class="bi bi-search me-2"></i>Patients</a>
+        <a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-grid me-2"></i>Paneli</a>
+        <a class="btn btn-outline-primary" asp-controller="Patients" asp-action="Index"><i class="bi bi-search me-2"></i>Pacientet</a>
     </div>
     @if (Model.ShowRequestId)
     {

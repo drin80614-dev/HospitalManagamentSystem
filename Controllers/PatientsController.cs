@@ -43,7 +43,8 @@ public class PatientsController : AppController
         var model = await _repository.GetPatientDetailsAsync(id);
         if (model is null)
         {
-            return NotFound();
+            AddError("Pacienti nuk u gjet ose lidhja me databazen nuk u pergjigj. Provo perseri nga lista e pacienteve.");
+            return RedirectToAction(nameof(Index));
         }
 
         if (CurrentRole == AppRoles.Doctor && model.Patient.AssignedDoctorId != CurrentDoctorId)

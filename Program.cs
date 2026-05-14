@@ -50,6 +50,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseStatusCodePagesWithReExecute("/Home/Status", "?code={0}");
+
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path.Value ?? string.Empty;
