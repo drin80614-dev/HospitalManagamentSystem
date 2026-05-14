@@ -143,7 +143,13 @@ public class HospitalRepository
         var history = await GetAsync<D1PatientHistory>($"api/patients/{id}/history");
         if (history?.Patient is null)
         {
-            return null;
+            var patient = await GetPatientAsync(id);
+            if (patient is null)
+            {
+                return null;
+            }
+
+            return new PatientDetailsViewModel { Patient = patient };
         }
 
         return new PatientDetailsViewModel
@@ -537,21 +543,32 @@ public class HospitalRepository
             return default;
         }
 
-        try
+        for (var attempt = 1; attempt <= 3; attempt++)
         {
-            using var response = await _httpClient.GetAsync(path);
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                return default;
-            }
+                using var response = await _httpClient.GetAsync(path);
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (attempt < 3 && IsTransientStatusCode(response.StatusCode))
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(180 * attempt));
+                        continue;
+                    }
 
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions);
+                    return default;
+                }
+
+                await using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions);
+            }
+            catch when (attempt < 3)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(180 * attempt));
+            }
         }
-        catch
-        {
-            return default;
-        }
+
+        return default;
     }
 
     private async Task<T?> SendAsync<T>(HttpMethod method, string path, object payload, bool throwOnFailure = true)
@@ -566,32 +583,50 @@ public class HospitalRepository
             return default;
         }
 
-        try
+        for (var attempt = 1; attempt <= 3; attempt++)
         {
-            using var request = new HttpRequestMessage(method, path)
+            try
             {
-                Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json")
-            };
-            using var response = await _httpClient.SendAsync(request);
-            var body = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                if (!throwOnFailure)
+                using var request = new HttpRequestMessage(method, path)
                 {
-                    return default;
+                    Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json")
+                };
+                using var response = await _httpClient.SendAsync(request);
+                var body = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (attempt < 3 && IsTransientStatusCode(response.StatusCode))
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(220 * attempt));
+                        continue;
+                    }
+
+                    if (!throwOnFailure)
+                    {
+                        return default;
+                    }
+
+                    throw new InvalidOperationException(ExtractError(body) ?? $"Cloudflare D1 API returned {(int)response.StatusCode}.");
                 }
 
-                throw new InvalidOperationException(ExtractError(body) ?? $"Cloudflare D1 API returned {(int)response.StatusCode}.");
+                return JsonSerializer.Deserialize<T>(body, JsonOptions);
             }
+            catch when (!throwOnFailure)
+            {
+                return default;
+            }
+            catch when (attempt < 3)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(220 * attempt));
+            }
+        }
 
-            return JsonSerializer.Deserialize<T>(body, JsonOptions);
-        }
-        catch when (!throwOnFailure)
-        {
-            return default;
-        }
+        return default;
     }
+
+    private static bool IsTransientStatusCode(System.Net.HttpStatusCode statusCode)
+        => (int)statusCode is 408 or 425 or 429 or 500 or 502 or 503 or 504;
 
     private static string? ExtractError(string body)
     {
