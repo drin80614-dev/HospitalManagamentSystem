@@ -184,6 +184,38 @@
     new bootstrap.Tooltip(el);
   });
 
+  const patientTabs = document.getElementById("patientTabs");
+  if (patientTabs) {
+    const storageKey = `vlera-dent-active-tab:${window.location.pathname}`;
+    const showTab = (selector) => {
+      if (!selector) {
+        return;
+      }
+
+      const trigger = patientTabs.querySelector(`[data-bs-target="${selector}"]`);
+      if (trigger) {
+        bootstrap.Tab.getOrCreateInstance(trigger).show();
+      }
+    };
+
+    const initialTab = window.location.hash?.startsWith("#tab-")
+      ? window.location.hash
+      : localStorage.getItem(storageKey);
+    showTab(initialTab);
+
+    patientTabs.querySelectorAll("[data-bs-toggle='pill']").forEach((button) => {
+      button.addEventListener("shown.bs.tab", (event) => {
+        const target = event.target?.getAttribute("data-bs-target");
+        if (!target) {
+          return;
+        }
+
+        localStorage.setItem(storageKey, target);
+        history.replaceState(null, "", `${window.location.pathname}${window.location.search}${target}`);
+      });
+    });
+  }
+
   document.querySelectorAll(".toast").forEach((toastEl) => {
     const toast = new bootstrap.Toast(toastEl, { delay: 4200 });
     toast.show();

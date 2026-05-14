@@ -50,7 +50,7 @@ public class HospitalRepository
     public Task<AppUser?> GetUserByLoginAsync(string login) => Task.FromResult<AppUser?>(null);
 
     public Task<long> GetLiveSyncVersionAsync()
-        => Task.FromResult(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        => Task.FromResult(1L);
 
     public Task<AppUser?> GetUserByIdAsync(Guid id) => Task.FromResult<AppUser?>(null);
 
