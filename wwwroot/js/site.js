@@ -105,6 +105,7 @@
       "Completed": "Perfunduar",
       "Notes": "Shenime",
       "Notifications": "Njoftimet",
+      "Reminders": "Kujtesat",
       "Mark read": "Sheno si lexuar",
       "My profile": "Profili im",
       "Change password": "Ndrysho fjalekalimin",
@@ -330,6 +331,133 @@
 
     checkLiveVersion();
     setInterval(checkLiveVersion, 3000);
+  }
+
+  const reminderButton = document.getElementById("appointmentReminderButton");
+  const notificationSupported = "Notification" in window;
+  const reminderStorageKey = "vlera-dent-reminders-enabled";
+  const notifiedStorageKey = "vlera-dent-reminders-sent";
+
+  const getSentReminders = () => {
+    try {
+      return JSON.parse(localStorage.getItem(notifiedStorageKey) || "{}");
+    } catch {
+      return {};
+    }
+  };
+
+  const saveSentReminders = (sent) => {
+    const entries = Object.entries(sent).slice(-80);
+    localStorage.setItem(notifiedStorageKey, JSON.stringify(Object.fromEntries(entries)));
+  };
+
+  const showAppointmentReminder = async (appointment) => {
+    const title = "Termin pas pak - Vlera Dent";
+    const body = `${appointment.patientName || "Pacient"} ne ora ${appointment.time || ""}${appointment.serviceNames ? ` - ${appointment.serviceNames}` : ""}`;
+    const url = `/Appointments?date=${appointment.startsAt.slice(0, 10)}`;
+
+    if (navigator.serviceWorker?.ready) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification(title, {
+          body,
+          tag: `appointment-${appointment.id}`,
+          icon: "/img/vlera-dent-app-icon-192.png",
+          badge: "/img/vlera-dent-app-icon-192.png",
+          data: { url }
+        });
+        return;
+      } catch {
+        // Fall back to browser notifications.
+      }
+    }
+
+    try {
+      const notification = new Notification(title, {
+        body,
+        tag: `appointment-${appointment.id}`,
+        icon: "/img/vlera-dent-app-icon-192.png",
+        data: { url }
+      });
+      notification.onclick = () => {
+        window.focus();
+        window.location.href = url;
+      };
+    } catch {
+      // Some browsers block notification creation unless triggered by user activation.
+    }
+  };
+
+  const checkAppointmentReminders = async () => {
+    if (!notificationSupported || Notification.permission !== "granted") {
+      return;
+    }
+
+    try {
+      const response = await fetch("/Appointments/ReminderFeed", {
+        cache: "no-store",
+        headers: { "Accept": "application/json" }
+      });
+      if (!response.ok) {
+        return;
+      }
+
+      const appointments = await response.json();
+      const now = new Date();
+      const sent = getSentReminders();
+
+      appointments.forEach((appointment) => {
+        if (!appointment.startsAt) {
+          return;
+        }
+
+        const startsAt = new Date(appointment.startsAt);
+        const minutesUntil = Math.round((startsAt.getTime() - now.getTime()) / 60000);
+        const reminderKey = `${appointment.id}:${appointment.startsAt}`;
+
+        if (minutesUntil >= 0 && minutesUntil <= 30 && !sent[reminderKey]) {
+          sent[reminderKey] = new Date().toISOString();
+          showAppointmentReminder(appointment);
+        }
+      });
+
+      saveSentReminders(sent);
+    } catch {
+      // Offline or sleeping devices will retry on the next interval.
+    }
+  };
+
+  if (reminderButton && notificationSupported) {
+    reminderButton.classList.remove("d-none");
+
+    const syncReminderButton = () => {
+      const enabled = localStorage.getItem(reminderStorageKey) === "true" && Notification.permission === "granted";
+      reminderButton.classList.toggle("btn-primary", enabled);
+      reminderButton.classList.toggle("btn-outline-primary", !enabled);
+      reminderButton.innerHTML = enabled
+        ? '<i class="bi bi-alarm-fill me-1"></i>Reminders on'
+        : '<i class="bi bi-alarm me-1"></i>Reminders';
+    };
+
+    reminderButton.addEventListener("click", async () => {
+      if (Notification.permission !== "granted") {
+        const permission = await Notification.requestPermission();
+        localStorage.setItem(reminderStorageKey, permission === "granted" ? "true" : "false");
+      } else {
+        const enabled = localStorage.getItem(reminderStorageKey) === "true";
+        localStorage.setItem(reminderStorageKey, enabled ? "false" : "true");
+      }
+
+      syncReminderButton();
+      checkAppointmentReminders();
+    });
+
+    syncReminderButton();
+    if (localStorage.getItem(reminderStorageKey) === "true") {
+      checkAppointmentReminders();
+      setInterval(checkAppointmentReminders, 60000);
+      window.addEventListener("focus", checkAppointmentReminders);
+    }
   }
 
   if ("serviceWorker" in navigator) {

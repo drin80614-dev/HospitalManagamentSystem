@@ -26,6 +26,29 @@ public class AppointmentsController : AppController
         return View(await _repository.GetAppointmentsAsync(doctorId, date, status));
     }
 
+    [HttpGet]
+    public async Task<IActionResult> ReminderFeed()
+    {
+        var doctorId = CurrentRole == AppRoles.Doctor ? CurrentDoctorId : null;
+        var appointments = (await _repository.GetAppointmentsAsync(doctorId, null, null)).Appointments
+            .Where(appointment => appointment.Status is "Scheduled" or "Waiting" or "In Progress")
+            .Select(appointment => new
+            {
+                appointment.Id,
+                appointment.AppointmentNumber,
+                appointment.PatientName,
+                appointment.DoctorName,
+                appointment.ServiceNames,
+                appointment.Reason,
+                appointment.Status,
+                StartsAt = $"{appointment.AppointmentDate:yyyy-MM-dd}T{appointment.AppointmentTime:hh\\:mm\\:ss}",
+                Time = appointment.AppointmentTime.ToString(@"hh\:mm")
+            })
+            .ToList();
+
+        return Json(appointments);
+    }
+
     public async Task<IActionResult> Calendar(Guid? doctorId, DateTime? start)
     {
         if (CurrentRole == AppRoles.Doctor)

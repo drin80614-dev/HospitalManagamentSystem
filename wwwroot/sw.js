@@ -1,4 +1,4 @@
-const CACHE_NAME = "vlera-dent-static-v2";
+const CACHE_NAME = "vlera-dent-static-v3";
 const STATIC_ASSETS = [
   "/manifest.webmanifest",
   "/css/site.css",
@@ -56,6 +56,25 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache));
         return response;
       });
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/Appointments";
+  const absoluteUrl = new URL(targetUrl, self.location.origin).href;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ("focus" in client) {
+          client.navigate(absoluteUrl);
+          return client.focus();
+        }
+      }
+
+      return self.clients.openWindow(absoluteUrl);
     })
   );
 });
