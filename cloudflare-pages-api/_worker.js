@@ -218,10 +218,14 @@ function toCamel(row) {
   const converted = {};
   for (const [key, value] of Object.entries(row || {})) {
     const camel = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-    converted[camel] = key.endsWith("_at") ? toIsoTimestamp(value) : value;
+    converted[camel] = isDateLikeKey(key) ? toIsoTimestamp(value) : value;
   }
 
   return converted;
+}
+
+function isDateLikeKey(key) {
+  return key.endsWith("_at") || key.endsWith("_date") || key === "date" || key === "payment_date" || key === "visit_date";
 }
 
 function toIsoTimestamp(value) {
@@ -230,10 +234,10 @@ function toIsoTimestamp(value) {
   }
 
   if (value.includes("T")) {
-    return value;
+    return value.endsWith("Z") || /[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`;
   }
 
-  return `${value.replace(" ", "T")}Z`;
+  return value.length === 10 ? `${value}T00:00:00Z` : `${value.replace(" ", "T")}Z`;
 }
 
 async function all(statement) {

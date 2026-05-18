@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using HospitalManagamentSystem.Models;
 using HospitalManagamentSystem.ViewModels;
 using Microsoft.Extensions.Options;
@@ -13,7 +14,8 @@ public class HospitalRepository
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new FlexibleDateTimeConverter() }
     };
 
     private readonly HttpClient _httpClient;
@@ -671,5 +673,47 @@ public class HospitalRepository
         public IReadOnlyList<Diagnosis>? Diagnoses { get; set; }
         public IReadOnlyList<Prescription>? Prescriptions { get; set; }
         public IReadOnlyList<Payment>? Payments { get; set; }
+    }
+
+    private sealed class FlexibleDateTimeConverter : JsonConverter<DateTime>
+    {
+        private static readonly string[] Formats =
+        [
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm:ss.FFFFFFF",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF",
+            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF'Z'",
+            "yyyy-MM-dd"
+        ];
+
+        public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.Null)
+            {
+                return default;
+            }
+
+            var value = reader.GetString();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return default;
+            }
+
+            if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal | DateTimeStyles.AllowWhiteSpaces, out var parsed))
+            {
+                return parsed;
+            }
+
+            if (DateTime.TryParseExact(value, Formats, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal | DateTimeStyles.AllowWhiteSpaces, out parsed))
+            {
+                return parsed;
+            }
+
+            return default;
+        }
+
+        public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
+            => writer.WriteStringValue(value.ToString("O", CultureInfo.InvariantCulture));
     }
 }
